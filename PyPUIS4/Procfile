@@ -1,1 +1,1 @@
-web: gunicorn PyPUIS4.app:app
+web: python -m gunicorn app:app
