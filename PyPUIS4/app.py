@@ -66,43 +66,39 @@ def changer_profondeur():
 # =========================================================
 
 def enregistrer_si_finie():
+
     global partie_sauvegardee
 
-    print("DEBUG : tentative sauvegarde")
+    print("DEBUG : appel enregistrer_si_finie")
 
     if modele.resultat is None:
-        print("DEBUG : partie pas terminée")
+        print("DEBUG : resultat None")
         return
 
     if partie_sauvegardee:
-        print("DEBUG : déjà sauvegardée")
+        print("DEBUG : deja sauvegardee")
         return
 
     coups = modele.exporter_coups_string()
+
+    print("DEBUG coups :", coups)
+
     confiance = 1 if mode == 2 else 2
 
-    try:
-        ok, msg, gid = inserer_partie(
-            lignes=modele.lignes,
-            colonnes=modele.colonnes,
-            couleur_depart=modele.couleur_depart,
-            joueur_courant=modele.joueur_courant,
-            statut="finished",
-            resultat=modele.resultat,
-            coups=coups,
-            confiance=confiance
-        )
+    ok, msg, gid = inserer_partie(
+        lignes=modele.lignes,
+        colonnes=modele.colonnes,
+        couleur_depart=modele.couleur_depart,
+        joueur_courant=modele.joueur_courant,
+        statut="finished",
+        resultat=modele.resultat,
+        coups=coups,
+        confiance=confiance
+    )
 
-        print("PARTIE TERMINEE → ENREGISTREMENT BD")
-        print("Sauvegarde BD:", ok, msg, gid)
+    print("RESULTAT INSERT :", ok, msg, gid)
 
-        if ok:
-            partie_sauvegardee = True
-
-    except Exception as e:
-        print("ERREUR SAUVEGARDE BD:", e)
-
-
+    partie_sauvegardee = True
 # =========================================================
 # VERIFICATION FIN DE PARTIE
 # =========================================================
