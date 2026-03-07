@@ -12,7 +12,7 @@ modele = Puissance4Modele()
 # 0 = IA vs IA
 mode = 2
 
-# profondeur minimax
+# profondeur minimaxle de
 PROFONDEUR_IA = 2
 
 # évite double sauvegarde
