@@ -29,14 +29,13 @@ def accueil():
 
 
 # =========================================================
-# DONNEES DU PLATEAU (AVEC SCORES MINIMAX)
+# DONNEES DU PLATEAU
 # =========================================================
 
 @app.route("/api/plateau")
 def get_plateau():
     scores = None
 
-    # Calcul scores seulement si IA active
     if mode in (0, 1) and modele.resultat is None:
         scores = modele.calculer_scores_minimax(PROFONDEUR_IA)
 
@@ -50,7 +49,7 @@ def get_plateau():
 
 
 # =========================================================
-# CHANGER PROFONDEUR MINIMAX
+# CHANGER PROFONDEUR IA
 # =========================================================
 
 @app.route("/api/profondeur", methods=["POST"])
@@ -63,31 +62,45 @@ def changer_profondeur():
 
 
 # =========================================================
-# SAUVEGARDE SI FINIE
+# SAUVEGARDE PARTIE
 # =========================================================
 
 def enregistrer_si_finie():
     global partie_sauvegardee
 
-    if modele.resultat is None or partie_sauvegardee:
+    print("DEBUG : tentative sauvegarde")
+
+    if modele.resultat is None:
+        print("DEBUG : partie pas terminée")
+        return
+
+    if partie_sauvegardee:
+        print("DEBUG : déjà sauvegardée")
         return
 
     coups = modele.exporter_coups_string()
     confiance = 1 if mode == 2 else 2
 
-    ok, msg, gid = inserer_partie(
-        lignes=modele.lignes,
-        colonnes=modele.colonnes,
-        couleur_depart=modele.couleur_depart,
-        joueur_courant=modele.joueur_courant,
-        statut="finished",
-        resultat=modele.resultat,
-        coups=coups,
-        confiance=confiance
-    )
-    print("PARTIE TERMINEE → ENREGISTREMENT BD")
-    print("Sauvegarde BD:", ok, msg, gid)
-    partie_sauvegardee = True
+    try:
+        ok, msg, gid = inserer_partie(
+            lignes=modele.lignes,
+            colonnes=modele.colonnes,
+            couleur_depart=modele.couleur_depart,
+            joueur_courant=modele.joueur_courant,
+            statut="finished",
+            resultat=modele.resultat,
+            coups=coups,
+            confiance=confiance
+        )
+
+        print("PARTIE TERMINEE → ENREGISTREMENT BD")
+        print("Sauvegarde BD:", ok, msg, gid)
+
+        if ok:
+            partie_sauvegardee = True
+
+    except Exception as e:
+        print("ERREUR SAUVEGARDE BD:", e)
 
 
 # =========================================================
@@ -98,24 +111,27 @@ def verifier_fin():
     coords = modele.verifier_victoire(modele.joueur_courant)
 
     if coords is not None:
-        modele.definir_resultat(
-            "rouge" if modele.joueur_courant == modele.ROUGE else "jaune"
-        )
+        gagnant = "rouge" if modele.joueur_courant == modele.ROUGE else "jaune"
+        modele.definir_resultat(gagnant)
+        print("VICTOIRE :", gagnant)
         enregistrer_si_finie()
         return True
 
     if modele.plateau_plein():
         modele.definir_resultat("nul")
+        print("MATCH NUL")
         enregistrer_si_finie()
         return True
 
     return False
+
 
 # =========================================================
 # IA
 # =========================================================
 
 def jouer_ia():
+
     if modele.resultat is not None:
         return
 
@@ -126,7 +142,6 @@ def jouer_ia():
         enregistrer_si_finie()
         return
 
-    # Choix meilleure colonne
     col = max(scores, key=scores.get)
 
     modele.jouer_coup(col)
@@ -141,6 +156,7 @@ def jouer_ia():
 
 @app.route("/api/jouer", methods=["POST"])
 def jouer():
+
     data = request.get_json()
     col = int(data["col"])
 
@@ -155,7 +171,6 @@ def jouer():
     if not verifier_fin():
         modele.changer_joueur()
 
-    # Humain vs IA
     if mode == 1 and modele.resultat is None:
         jouer_ia()
 
@@ -163,11 +178,12 @@ def jouer():
 
 
 # =========================================================
-# IA vs IA (1 coup à la fois)
+# IA vs IA
 # =========================================================
 
 @app.route("/api/ia_step", methods=["POST"])
 def ia_step():
+
     if mode != 0:
         return jsonify({"status": "erreur_mode"})
 
@@ -184,21 +200,27 @@ def ia_step():
 
 @app.route("/api/nouvelle")
 def nouvelle():
+
     global partie_sauvegardee
+
     modele.nouvelle_partie()
     partie_sauvegardee = False
+
     return jsonify({"status": "reset"})
 
 
 # =========================================================
-# ANNULER DERNIER COUP
+# ANNULER COUP
 # =========================================================
 
 @app.route("/api/annuler")
 def annuler():
+
     global partie_sauvegardee
+
     modele.annuler_dernier_coup()
     partie_sauvegardee = False
+
     return jsonify({"status": "ok"})
 
 
@@ -208,6 +230,7 @@ def annuler():
 
 @app.route("/api/mode", methods=["POST"])
 def changer_mode():
+
     global mode, partie_sauvegardee
 
     data = request.get_json()
@@ -220,11 +243,12 @@ def changer_mode():
 
 
 # =========================================================
-# HISTORIQUE BD
+# HISTORIQUE
 # =========================================================
 
 @app.route("/api/historique")
 def historique():
+
     parties = lister_parties_jeu()
 
     data = []
@@ -242,11 +266,12 @@ def historique():
 
 
 # =========================================================
-# CHARGER PARTIE DEPUIS BD
+# CHARGER PARTIE
 # =========================================================
 
 @app.route("/api/charger/<int:partie_id>")
 def charger_partie(partie_id):
+
     global partie_sauvegardee
 
     partie = get_partie(partie_id)
@@ -255,13 +280,14 @@ def charger_partie(partie_id):
         return jsonify({"status": "erreur"})
 
     modele.charger_depuis_bd(partie)
+
     partie_sauvegardee = True
 
     return jsonify({"status": "ok"})
 
 
 # =========================================================
-# LANCEMENT (COMPATIBLE RENDER)
+# LANCEMENT (RENDER)
 # =========================================================
 
 if __name__ == "__main__":
