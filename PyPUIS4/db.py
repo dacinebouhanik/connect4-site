@@ -7,7 +7,7 @@ DB_CONFIG = {
     "port": 5432,
     "dbname": "connect4",
     "user": "postgres",
-    "password": "311004"
+    "password": "Hicham.20052005"
 }
 
 # =========================================================

@@ -26,12 +26,28 @@ class Puissance4Modele:
     # ---------------- CONFIG ----------------
 
     def charger_config(self):
-        with open(self.chemin_config, "r") as f:
-            config = json.load(f)
-        self.lignes = config["lignes"]
-        self.colonnes = config["colonnes"]
-        self.couleur_depart = config["couleur_depart"]
-        self.config = config
+        if not os.path.exists(self.chemin_config):
+            self.config = {
+                "lignes": 9,
+                "colonnes": 9,
+                "couleur_depart": 1
+            }
+        else:
+            with open(self.chemin_config, "r", encoding="utf-8") as f:
+                contenu = f.read().strip()
+
+            if contenu == "":
+                self.config = {
+                    "lignes": 9,
+                    "colonnes": 9,
+                    "couleur_depart": 1
+                }
+            else:
+                self.config = json.loads(contenu)
+
+        self.lignes = self.config["lignes"]
+        self.colonnes = self.config["colonnes"]
+        self.couleur_depart = self.config["couleur_depart"]
 
     def sauver_config(self):
         self.config["lignes"] = self.lignes
@@ -240,6 +256,19 @@ class Puissance4Modele:
 
         return score
 
+    def mettre_a_jour_parametres(self, lignes, colonnes, couleur_depart):
+        if lignes < 4 or colonnes < 4:
+            return False
+
+        self.lignes = lignes
+        self.colonnes = colonnes
+        self.couleur_depart = couleur_depart
+
+        self.sauver_config()
+        self.nouvelle_partie()
+
+        return True
+
     # ---------------- MINIMAX + ALPHA-BETA ----------------
 
     def minimax_alpha_beta(self, plateau, profondeur, alpha, beta, joueur_max, joueur_courant):
@@ -327,6 +356,16 @@ class Puissance4Modele:
             scores[col] = score
 
         return scores
+
+    def minimax(self, plateau, profondeur, joueur_max, joueur_courant):
+        return self.minimax_alpha_beta(
+            plateau,
+            profondeur,
+            -10 ** 18,
+            10 ** 18,
+            joueur_max,
+            joueur_courant
+        )
 
     # ---------------- BD UTILS ----------------
 
