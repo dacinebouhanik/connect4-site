@@ -252,7 +252,7 @@ async function chargerHistorique() {
         ligne.innerHTML = `
             <td>${partie.id}</td>
             <td>${partie.date}</td>
-            <td>${partie.coups.length}</td>
+           <td>${partie.coups ? partie.coups.length : 0}</td>
             <td>${resultatTexte}</td>
             <td>${partie.statut}</td>
             <td>
