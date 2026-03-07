@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request
 from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
 import os
-
+import init_db
 app = Flask(__name__)
 
 modele = Puissance4Modele()
