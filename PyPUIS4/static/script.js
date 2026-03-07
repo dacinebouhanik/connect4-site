@@ -267,6 +267,20 @@ async function chargerHistorique() {
     });
 
 }
+function ouvrirHistorique() {
+
+    const zone = document.getElementById("historique");
+
+    if (!zone) return;
+
+    if (zone.style.display === "none" || zone.style.display === "") {
+        zone.style.display = "block";
+        chargerHistorique();
+    } else {
+        zone.style.display = "none";
+    }
+
+}
 
 
 /* ================================
