@@ -1,6 +1,7 @@
 from db import chercher_parties_similaires
 
-def proposer_coup_depuis_base(coups_actuels, joueur_courant):
+def proposer_coup_depuis_base(coups_actuels, joueur_courant, colonnes_valides):
+
     parties = chercher_parties_similaires(coups_actuels)
 
     if not parties:
@@ -36,4 +37,9 @@ def proposer_coup_depuis_base(coups_actuels, joueur_courant):
 
     meilleur = max(stats, key=stats.get)
 
-    return int(meilleur)
+    col = int(meilleur) - 1
+
+    if col not in colonnes_valides:
+        return None
+
+    return col

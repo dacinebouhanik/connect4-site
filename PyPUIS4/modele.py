@@ -270,89 +270,125 @@ class Puissance4Modele:
         return True
 
     # ---------------- MINIMAX + ALPHA-BETA ----------------
-
     def minimax_alpha_beta(self, plateau, profondeur, alpha, beta, joueur_max, joueur_courant):
         """Minimax avec alpha-beta."""
+
         adv = self.autre_joueur(joueur_max)
 
-        # conditions d'arrêt
-        if (profondeur == 0 or
-                self._verifier_victoire_sur_plateau(plateau, joueur_max) or
-                self._verifier_victoire_sur_plateau(plateau, adv) or
-                self.plateau_plein(plateau)):
+        # -------- ETATS TERMINAUX --------
+
+        if self._verifier_victoire_sur_plateau(plateau, joueur_max):
+            return 100000000 - profondeur
+
+        if self._verifier_victoire_sur_plateau(plateau, adv):
+            return -100000000 + profondeur
+
+        if profondeur == 0 or self.plateau_plein(plateau):
             return self.evaluer_plateau(plateau, joueur_max)
 
         valides = self.colonnes_valides(plateau)
 
-        # petite astuce : tester d'abord les colonnes du centre (souvent meilleur)
+        # tester les colonnes du centre d'abord
         centre = self.colonnes // 2
         valides.sort(key=lambda c: abs(centre - c))
 
+        # -------- JOUEUR MAX --------
+
         if joueur_courant == joueur_max:
-            meilleur = -10**18
+
+            meilleur = -10 ** 18
+
             for col in valides:
+
                 lig = self._jouer_temp(plateau, col, joueur_courant)
                 if lig is None:
                     continue
+
                 score = self.minimax_alpha_beta(
-                    plateau, profondeur - 1, alpha, beta,
-                    joueur_max, self.autre_joueur(joueur_courant)
+                    plateau,
+                    profondeur - 1,
+                    alpha,
+                    beta,
+                    joueur_max,
+                    self.autre_joueur(joueur_courant)
                 )
+
                 plateau[lig][col] = self.VIDE
 
-                if score > meilleur:
-                    meilleur = score
-                if meilleur > alpha:
-                    alpha = meilleur
+                meilleur = max(meilleur, score)
+                alpha = max(alpha, score)
+
                 if alpha >= beta:
                     break
+
             return meilleur
 
+        # -------- JOUEUR MIN --------
+
         else:
-            pire = 10**18
+
+            pire = 10 ** 18
+
             for col in valides:
+
                 lig = self._jouer_temp(plateau, col, joueur_courant)
                 if lig is None:
                     continue
+
                 score = self.minimax_alpha_beta(
-                    plateau, profondeur - 1, alpha, beta,
-                    joueur_max, self.autre_joueur(joueur_courant)
+                    plateau,
+                    profondeur - 1,
+                    alpha,
+                    beta,
+                    joueur_max,
+                    self.autre_joueur(joueur_courant)
                 )
+
                 plateau[lig][col] = self.VIDE
 
-                if score < pire:
-                    pire = score
-                if pire < beta:
-                    beta = pire
+                pire = min(pire, score)
+                beta = min(beta, score)
+
                 if alpha >= beta:
                     break
+
             return pire
 
     def calculer_scores_minimax(self, profondeur):
-        """Retourne dict {col: score} pour le joueur courant (avec alpha-beta)."""
+
         scores = {}
         plateau = [ligne[:] for ligne in self.plateau]
         joueur_max = self.joueur_courant
 
         valides = self.colonnes_valides(plateau)
+
         centre = self.colonnes // 2
         valides.sort(key=lambda c: abs(centre - c))
 
         for col in valides:
+
             lig = self._jouer_temp(plateau, col, joueur_max)
+
             if lig is None:
+                continue
+
+            # victoire immédiate
+            if self._verifier_victoire_sur_plateau(plateau, joueur_max):
+                plateau[lig][col] = self.VIDE
+                scores[col] = 100000000
                 continue
 
             score = self.minimax_alpha_beta(
                 plateau,
                 profondeur - 1,
-                alpha=-10**18,
-                beta=10**18,
+                alpha=-10 ** 18,
+                beta=10 ** 18,
                 joueur_max=joueur_max,
                 joueur_courant=self.autre_joueur(joueur_max)
             )
 
             plateau[lig][col] = self.VIDE
+
             scores[col] = score
 
         return scores
