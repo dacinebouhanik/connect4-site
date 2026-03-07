@@ -85,7 +85,7 @@ def enregistrer_si_finie():
         coups=coups,
         confiance=confiance
     )
-
+    print("PARTIE TERMINEE → ENREGISTREMENT BD")
     print("Sauvegarde BD:", ok, msg, gid)
     partie_sauvegardee = True
 
@@ -95,7 +95,9 @@ def enregistrer_si_finie():
 # =========================================================
 
 def verifier_fin():
-    if modele.verifier_victoire(modele.joueur_courant):
+    coords = modele.verifier_victoire(modele.joueur_courant)
+
+    if coords is not None:
         modele.definir_resultat(
             "rouge" if modele.joueur_courant == modele.ROUGE else "jaune"
         )
@@ -108,7 +110,6 @@ def verifier_fin():
         return True
 
     return False
-
 
 # =========================================================
 # IA
