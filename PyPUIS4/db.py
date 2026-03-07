@@ -2,20 +2,18 @@
 import os
 import psycopg2
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "connect4",
-    "user": "postgres",
-    "password": "Hicham.20052005"
-}
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_conn():
+    database_url = os.environ.get("DATABASE_URL")
+    return psycopg2.connect(database_url)
 
 # =========================================================
 # TEST
 # =========================================================
 
 def test_connexion():
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = get_conn()
     cur = conn.cursor()
     cur.execute("SELECT 1;")
     res = cur.fetchone()
@@ -84,7 +82,8 @@ def inserer_partie(lignes, colonnes, couleur_depart, joueur_courant,
 
     can, sym = coups_canonique(coups, colonnes)
 
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = get_conn()
+
     try:
         cur = conn.cursor()
 
@@ -129,7 +128,7 @@ def inserer_partie(lignes, colonnes, couleur_depart, joueur_courant,
 # =========================================================
 
 def lister_parties():
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
         SELECT g.id, g.created_at, g.statut, g.resultat, g.confiance, c.coups
@@ -144,7 +143,7 @@ def lister_parties():
 
 
 def get_partie(partie_id: int):
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
         SELECT
@@ -165,7 +164,7 @@ def lister_parties_jeu():
     """
     Liste courte pour l'UI 'Charger depuis BD'
     """
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
         SELECT g.id, g.created_at, g.statut, g.resultat, g.confiance, c.coups
@@ -225,7 +224,7 @@ def chercher_parties_similaires(prefixe: str, limite=5000):
     """
     prefixe = (prefixe or "").strip()
 
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
         SELECT c.coups, g.resultat, g.confiance
