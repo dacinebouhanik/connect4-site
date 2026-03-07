@@ -64,14 +64,35 @@
 
 <div id="plateau"></div>
 
-<!-- scores minimax (si tu veux l'afficher) -->
+<!-- scores minimax -->
 <div id="scores" style="margin-top:10px;"></div>
 
-<div id="historique" style="display:none; margin-top:15px;">
+<!-- HISTORIQUE -->
+<div id="historique" style="display:none; margin-top:20px;">
+
     <h3>Historique des parties</h3>
-    <div id="listeParties"></div>
+
+    <table class="table-historique">
+
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Coups</th>
+                <th>Résultat</th>
+                <th>Statut</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody id="listeParties">
+        </tbody>
+
+    </table>
+
 </div>
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 </body>
 </html>

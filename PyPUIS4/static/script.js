@@ -6,6 +6,7 @@ let delaiIAActuel = 600;
 ================================ */
 
 async function chargerPlateau() {
+
     const res = await fetch("/api/plateau");
     const data = await res.json();
 
@@ -61,16 +62,18 @@ async function chargerPlateau() {
     const info = document.getElementById("info");
 
     if (data.resultat) {
+
         info.innerHTML = "Partie terminée : " + data.resultat;
 
-        // IMPORTANT : recharge historique automatiquement
         const zone = document.getElementById("historique");
         if (zone && zone.style.display !== "none") {
             chargerHistorique();
         }
 
     } else {
+
         info.innerHTML = "Joueur : " + (data.joueur === 1 ? "Rouge" : "Jaune");
+
     }
 
     afficherScoresSousColonnes(data.scores);
@@ -81,6 +84,7 @@ async function chargerPlateau() {
         stopperIA();
     }
 }
+
 
 /* ================================
    JOUER
@@ -99,23 +103,30 @@ async function jouer(col) {
     chargerPlateau();
 }
 
+
 /* ================================
    NOUVELLE PARTIE
 ================================ */
 
 async function nouvellePartie() {
+
     await fetch("/api/nouvelle");
     chargerPlateau();
+
 }
+
 
 /* ================================
    ANNULER
 ================================ */
 
 async function annulerCoup() {
+
     await fetch("/api/annuler");
     chargerPlateau();
+
 }
+
 
 /* ================================
    CHANGER MODE
@@ -135,7 +146,9 @@ async function changerMode() {
     });
 
     chargerPlateau();
+
 }
+
 
 /* ================================
    IA vs IA
@@ -156,6 +169,7 @@ function demarrerIA() {
         await chargerPlateau();
 
     }, d);
+
 }
 
 function stopperIA() {
@@ -164,7 +178,9 @@ function stopperIA() {
         clearInterval(timerIA);
         timerIA = null;
     }
+
 }
+
 
 /* ================================
    SCORES MINIMAX
@@ -206,26 +222,10 @@ function afficherScoresSousColonnes(scores) {
     plateauDiv.after(div);
 }
 
+
 /* ================================
-   HISTORIQUE
+   HISTORIQUE (MODIFIÉ)
 ================================ */
-
-async function ouvrirHistorique() {
-
-    const zone = document.getElementById("historique");
-
-    if (!zone) return;
-
-    if (zone.style.display === "none") {
-
-        zone.style.display = "block";
-        chargerHistorique();
-
-    } else {
-
-        zone.style.display = "none";
-    }
-}
 
 async function chargerHistorique() {
 
@@ -233,34 +233,54 @@ async function chargerHistorique() {
     const data = await res.json();
 
     const liste = document.getElementById("listeParties");
-
     if (!liste) return;
 
     liste.innerHTML = "";
 
     data.forEach(partie => {
 
-        const div = document.createElement("div");
+        const ligne = document.createElement("tr");
 
-        div.innerHTML = `
-            <strong>ID ${partie.id}</strong> |
-            résultat : ${partie.resultat} |
-            confiance : ${partie.confiance}
-            <button onclick="chargerPartie(${partie.id})">
-                Charger
-            </button>
+        let resultatTexte = "Match nul";
+
+        if (partie.resultat === "rouge")
+            resultatTexte = "🔴 Rouge gagne";
+
+        if (partie.resultat === "jaune")
+            resultatTexte = "🟡 Jaune gagne";
+
+        ligne.innerHTML = `
+            <td>${partie.id}</td>
+            <td>${partie.date}</td>
+            <td>${partie.coups.length}</td>
+            <td>${resultatTexte}</td>
+            <td>${partie.statut}</td>
+            <td>
+                <button onclick="chargerPartie(${partie.id})">
+                    Voir
+                </button>
+            </td>
         `;
 
-        liste.appendChild(div);
+        liste.appendChild(ligne);
+
     });
+
 }
+
+
+/* ================================
+   CHARGER PARTIE
+================================ */
 
 async function chargerPartie(id) {
 
     await fetch("/api/charger/" + id);
 
     chargerPlateau();
+
 }
+
 
 /* ================================
    INITIALISATION
