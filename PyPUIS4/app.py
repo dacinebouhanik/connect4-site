@@ -2,7 +2,9 @@ from flask import Flask, render_template, jsonify, request
 from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
 import os
+import random
 import init_db
+
 app = Flask(__name__)
 
 modele = Puissance4Modele()
@@ -12,7 +14,11 @@ modele = Puissance4Modele()
 # 0 = IA vs IA
 mode = 2
 
-# profondeur minimaxle de
+# type IA
+ia_rouge = "minimax"
+ia_jaune = "minimax"
+
+# profondeur minimax
 PROFONDEUR_IA = 2
 
 # évite double sauvegarde
@@ -34,10 +40,17 @@ def accueil():
 
 @app.route("/api/plateau")
 def get_plateau():
+
     scores = None
 
     if mode in (0, 1) and modele.resultat is None:
-        scores = modele.calculer_scores_minimax(PROFONDEUR_IA)
+
+        joueur = modele.joueur_courant
+
+        if (joueur == modele.ROUGE and ia_rouge == "minimax") or \
+           (joueur == modele.JAUNE and ia_jaune == "minimax"):
+
+            scores = modele.calculer_scores_minimax(PROFONDEUR_IA)
 
     return jsonify({
         "plateau": modele.plateau,
@@ -54,10 +67,35 @@ def get_plateau():
 
 @app.route("/api/profondeur", methods=["POST"])
 def changer_profondeur():
+
     global PROFONDEUR_IA
+
     data = request.get_json()
+
     PROFONDEUR_IA = int(data["profondeur"])
+
     print("Nouvelle profondeur IA:", PROFONDEUR_IA)
+
+    return jsonify({"status": "ok"})
+
+
+# =========================================================
+# CHANGER TYPE IA
+# =========================================================
+
+@app.route("/api/ia_type", methods=["POST"])
+def changer_ia():
+
+    global ia_rouge, ia_jaune
+
+    data = request.get_json()
+
+    ia_rouge = data["rouge"]
+    ia_jaune = data["jaune"]
+
+    print("IA Rouge :", ia_rouge)
+    print("IA Jaune :", ia_jaune)
+
     return jsonify({"status": "ok"})
 
 
@@ -69,19 +107,13 @@ def enregistrer_si_finie():
 
     global partie_sauvegardee
 
-    print("DEBUG : appel enregistrer_si_finie")
-
     if modele.resultat is None:
-        print("DEBUG : resultat None")
         return
 
     if partie_sauvegardee:
-        print("DEBUG : deja sauvegardee")
         return
 
     coups = modele.exporter_coups_string()
-
-    print("DEBUG coups :", coups)
 
     confiance = 1 if mode == 2 else 2
 
@@ -99,24 +131,32 @@ def enregistrer_si_finie():
     print("RESULTAT INSERT :", ok, msg, gid)
 
     partie_sauvegardee = True
+
+
 # =========================================================
 # VERIFICATION FIN DE PARTIE
 # =========================================================
 
 def verifier_fin():
+
     coords = modele.verifier_victoire(modele.joueur_courant)
 
     if coords is not None:
+
         gagnant = "rouge" if modele.joueur_courant == modele.ROUGE else "jaune"
+
         modele.definir_resultat(gagnant)
-        print("VICTOIRE :", gagnant)
+
         enregistrer_si_finie()
+
         return True
 
     if modele.plateau_plein():
+
         modele.definir_resultat("nul")
-        print("MATCH NUL")
+
         enregistrer_si_finie()
+
         return True
 
     return False
@@ -131,14 +171,34 @@ def jouer_ia():
     if modele.resultat is not None:
         return
 
-    scores = modele.calculer_scores_minimax(PROFONDEUR_IA)
+    joueur = modele.joueur_courant
 
-    if not scores:
-        modele.definir_resultat("nul")
-        enregistrer_si_finie()
-        return
+    if joueur == modele.ROUGE:
+        ia_type = ia_rouge
+    else:
+        ia_type = ia_jaune
 
-    col = max(scores, key=scores.get)
+    # IA ALEATOIRE
+
+    if ia_type == "aleatoire":
+
+        col = modele.coup_aleatoire()
+
+    # IA MINIMAX
+
+    else:
+
+        scores = modele.calculer_scores_minimax(PROFONDEUR_IA)
+
+        if not scores:
+            modele.definir_resultat("nul")
+            enregistrer_si_finie()
+            return
+
+        best_score = max(scores.values())
+        best_cols = [c for c in scores if scores[c] == best_score]
+
+        col = random.choice(best_cols)
 
     modele.jouer_coup(col)
 
@@ -187,6 +247,7 @@ def ia_step():
         return jsonify({"status": "fin"})
 
     jouer_ia()
+
     return jsonify({"status": "ok"})
 
 
@@ -200,6 +261,7 @@ def nouvelle():
     global partie_sauvegardee
 
     modele.nouvelle_partie()
+
     partie_sauvegardee = False
 
     return jsonify({"status": "reset"})
@@ -215,6 +277,7 @@ def annuler():
     global partie_sauvegardee
 
     modele.annuler_dernier_coup()
+
     partie_sauvegardee = False
 
     return jsonify({"status": "ok"})
@@ -230,9 +293,11 @@ def changer_mode():
     global mode, partie_sauvegardee
 
     data = request.get_json()
+
     mode = int(data["mode"])
 
     modele.nouvelle_partie()
+
     partie_sauvegardee = False
 
     return jsonify({"status": "ok"})
@@ -248,7 +313,9 @@ def historique():
     parties = lister_parties_jeu()
 
     data = []
+
     for p in parties:
+
         data.append({
             "id": p[0],
             "date": str(p[1]),
@@ -287,5 +354,7 @@ def charger_partie(partie_id):
 # =========================================================
 
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 5000))
+
     app.run(host="0.0.0.0", port=port)
