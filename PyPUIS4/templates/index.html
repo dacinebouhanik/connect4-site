@@ -21,7 +21,30 @@
     </select>
 </div>
 
-<!-- Réglages IA -->
+
+<!-- ================= IMPORT PARTIE BGA ================= -->
+
+<div id="bga_import" style="margin-top:15px;">
+
+<h3>Importer une partie BGA</h3>
+
+<div style="margin-bottom:8px;">
+
+Séquence de coups :
+
+<input id="bga_sequence" type="text" placeholder="ex: 4565553321" style="width:200px">
+
+<button onclick="importerSequence()">Importer</button>
+
+</div>
+
+<p id="import_result"></p>
+
+</div>
+
+
+<!-- ================= REGLAGES IA ================= -->
+
 <div id="zoneIA" style="display:none; margin-top:10px;">
     <h3>Réglages IA</h3>
 
@@ -60,6 +83,7 @@
     </div>
 </div>
 
+
 <p id="info"></p>
 
 <div id="plateau"></div>
@@ -67,30 +91,33 @@
 <!-- scores minimax -->
 <div id="scores" style="margin-top:10px;"></div>
 
-<!-- HISTORIQUE -->
+
+<!-- ================= HISTORIQUE ================= -->
+
 <div id="historique" style="display:none; margin-top:20px;">
 
-    <h3>Historique des parties</h3>
+<h3>Historique des parties</h3>
 
-    <table class="table-historique">
+<table class="table-historique">
 
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>Coups</th>
-                <th>Résultat</th>
-                <th>Statut</th>
-                <th>Action</th>
-            </tr>
-        </thead>
+<thead>
+<tr>
+<th>#</th>
+<th>Date</th>
+<th>Coups</th>
+<th>Résultat</th>
+<th>Statut</th>
+<th>Action</th>
+</tr>
+</thead>
 
-        <tbody id="listeParties">
-        </tbody>
+<tbody id="listeParties">
+</tbody>
 
-    </table>
+</table>
 
 </div>
+
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 

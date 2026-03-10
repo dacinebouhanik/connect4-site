@@ -1,7 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
-from scrape_partie_bga import scraper_partie_bga
 
 import os
 import random
@@ -60,45 +59,6 @@ def get_plateau():
         "resultat": modele.resultat,
         "mode": mode,
         "scores": scores
-    })
-
-
-# =========================================================
-# SCRAPER PARTIE BGA
-# =========================================================
-
-@app.route("/api/scraper_bga", methods=["POST"])
-def scraper_bga():
-
-    data = request.get_json()
-
-    table_id = data.get("table_id")
-
-    if not table_id:
-        return jsonify({"status": "erreur", "message": "table_id manquant"})
-
-    print("Scraping BGA table :", table_id)
-
-    coups = scraper_partie_bga(table_id)
-
-    if not coups:
-        return jsonify({"status": "erreur", "message": "Impossible de scraper la partie"})
-
-    ok, msg, gid = inserer_partie(
-        lignes=modele.lignes,
-        colonnes=modele.colonnes,
-        couleur_depart=1,
-        joueur_courant=1,
-        statut="finished",
-        resultat=None,
-        coups=coups,
-        confiance=3
-    )
-
-    return jsonify({
-        "status": "ok",
-        "coups": coups,
-        "db_message": msg
     })
 
 

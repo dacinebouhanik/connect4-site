@@ -68,8 +68,9 @@ select {
 }
 
 /* Case */
+
 .case {
-    width: 38px;      /* plus petit */
+    width: 38px;
     height: 38px;
     background-color: white;
     border-radius: 50%;
@@ -141,6 +142,7 @@ button:hover {
 #listeParties {
     text-align: left;
 }
+
 /* ================= TABLE HISTORIQUE ================= */
 
 .table-historique {
@@ -173,6 +175,7 @@ button:hover {
     background-color: #26486b;
     border-radius: 6px;
 }
+
 /* ================= IMPORT BGA ================= */
 
 #bga_import {
@@ -193,10 +196,10 @@ button:hover {
     padding: 5px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    width: 150px;
+    width: 200px;
 }
 
-#scraper_result {
+#import_result {
     margin-top: 8px;
     font-size: 13px;
     font-weight: bold;
