@@ -4,6 +4,44 @@ let delaiIAActuel = 600;
 /* ================================
    CHARGER PLATEAU
 ================================ */
+/* ================================
+   IMPORTER PARTIE BGA
+================================ */
+
+async function importerSequence() {
+
+    const seq = document.getElementById("bga_sequence").value;
+
+    if (!seq) {
+        alert("Entre une séquence de coups");
+        return;
+    }
+
+    try {
+
+        const res = await fetch("/api/import_sequence", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ coups: seq })
+        });
+
+        const data = await res.json();
+
+        const msg = document.getElementById("import_result");
+
+        if (msg) {
+            msg.innerText = data.message;
+        }
+
+        chargerHistorique();
+
+    } catch (err) {
+        console.error("Erreur import :", err);
+    }
+
+}
 
 async function chargerPlateau() {
 

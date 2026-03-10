@@ -176,3 +176,9 @@ def scraper_partie_bga(table_id):
     finally:
 
         driver.quit()
+if __name__ == "__main__":
+        table_id = input("Entre l'id de la table BGA : ")
+
+        coups = scraper_partie_bga(table_id)
+
+        print("\nCoups récupérés :", coups)
