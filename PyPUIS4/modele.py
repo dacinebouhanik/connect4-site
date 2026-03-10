@@ -289,8 +289,7 @@ class Puissance4Modele:
         valides = self.colonnes_valides(plateau)
 
         # tester les colonnes du centre d'abord
-        centre = self.colonnes // 2
-        valides.sort(key=lambda c: abs(centre - c))
+
 
         # -------- JOUEUR MAX --------
 
@@ -335,6 +334,11 @@ class Puissance4Modele:
                 if lig is None:
                     continue
 
+                # victoire immédiate
+                if self._verifier_victoire_sur_plateau(plateau, joueur_courant):
+                    plateau[lig][col] = self.VIDE
+                    return -100000000 + profondeur
+
                 score = self.minimax_alpha_beta(
                     plateau,
                     profondeur - 1,
@@ -351,7 +355,6 @@ class Puissance4Modele:
 
                 if alpha >= beta:
                     break
-
             return pire
 
     def calculer_scores_minimax(self, profondeur):
@@ -362,8 +365,7 @@ class Puissance4Modele:
 
         valides = self.colonnes_valides(plateau)
 
-        centre = self.colonnes // 2
-        valides.sort(key=lambda c: abs(centre - c))
+
 
         for col in valides:
 
