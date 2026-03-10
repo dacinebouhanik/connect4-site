@@ -1,6 +1,8 @@
 from flask import Flask, render_template, jsonify, request
 from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
+from scrape_partie_bga import scraper_partie_bga
+
 import os
 import random
 import init_db
@@ -58,6 +60,45 @@ def get_plateau():
         "resultat": modele.resultat,
         "mode": mode,
         "scores": scores
+    })
+
+
+# =========================================================
+# SCRAPER PARTIE BGA
+# =========================================================
+
+@app.route("/api/scraper_bga", methods=["POST"])
+def scraper_bga():
+
+    data = request.get_json()
+
+    table_id = data.get("table_id")
+
+    if not table_id:
+        return jsonify({"status": "erreur", "message": "table_id manquant"})
+
+    print("Scraping BGA table :", table_id)
+
+    coups = scraper_partie_bga(table_id)
+
+    if not coups:
+        return jsonify({"status": "erreur", "message": "Impossible de scraper la partie"})
+
+    ok, msg, gid = inserer_partie(
+        lignes=modele.lignes,
+        colonnes=modele.colonnes,
+        couleur_depart=1,
+        joueur_courant=1,
+        statut="finished",
+        resultat=None,
+        coups=coups,
+        confiance=3
+    )
+
+    return jsonify({
+        "status": "ok",
+        "coups": coups,
+        "db_message": msg
     })
 
 
@@ -173,18 +214,11 @@ def jouer_ia():
 
     joueur = modele.joueur_courant
 
-    if joueur == modele.ROUGE:
-        ia_type = ia_rouge
-    else:
-        ia_type = ia_jaune
-
-    # IA ALEATOIRE
+    ia_type = ia_rouge if joueur == modele.ROUGE else ia_jaune
 
     if ia_type == "aleatoire":
 
         col = modele.coup_aleatoire()
-
-    # IA MINIMAX
 
     else:
 
@@ -268,42 +302,6 @@ def nouvelle():
 
 
 # =========================================================
-# ANNULER COUP
-# =========================================================
-
-@app.route("/api/annuler")
-def annuler():
-
-    global partie_sauvegardee
-
-    modele.annuler_dernier_coup()
-
-    partie_sauvegardee = False
-
-    return jsonify({"status": "ok"})
-
-
-# =========================================================
-# CHANGER MODE
-# =========================================================
-
-@app.route("/api/mode", methods=["POST"])
-def changer_mode():
-
-    global mode, partie_sauvegardee
-
-    data = request.get_json()
-
-    mode = int(data["mode"])
-
-    modele.nouvelle_partie()
-
-    partie_sauvegardee = False
-
-    return jsonify({"status": "ok"})
-
-
-# =========================================================
 # HISTORIQUE
 # =========================================================
 
@@ -350,7 +348,7 @@ def charger_partie(partie_id):
 
 
 # =========================================================
-# LANCEMENT (RENDER)
+# LANCEMENT
 # =========================================================
 
 if __name__ == "__main__":

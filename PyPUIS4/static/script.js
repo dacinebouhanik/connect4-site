@@ -281,6 +281,53 @@ function ouvrirHistorique() {
     }
 
 }
+/* ================================
+   IMPORTER PARTIE BGA
+================================ */
+
+async function scraperBGA() {
+
+    const tableId = document.getElementById("bga_table_id").value;
+
+    if (!tableId) {
+        alert("Entre un ID de table BGA");
+        return;
+    }
+
+    const resultDiv = document.getElementById("scraper_result");
+    resultDiv.innerText = "Scraping en cours...";
+
+    try {
+
+        const res = await fetch("/api/scraper_bga", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ table_id: tableId })
+        });
+
+        const data = await res.json();
+
+        if (data.status === "ok") {
+
+            resultDiv.innerText = "Partie importée : " + data.coups;
+
+            chargerHistorique();
+
+        } else {
+
+            resultDiv.innerText = "Erreur scraping";
+
+        }
+
+    } catch (err) {
+
+        resultDiv.innerText = "Erreur connexion serveur";
+
+    }
+
+}
 
 
 /* ================================

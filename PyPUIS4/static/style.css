@@ -173,3 +173,31 @@ button:hover {
     background-color: #26486b;
     border-radius: 6px;
 }
+/* ================= IMPORT BGA ================= */
+
+#bga_import {
+    background: white;
+    padding: 12px;
+    margin: 12px 0;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    width: 500px;
+    max-width: 90%;
+}
+
+#bga_import h3 {
+    margin-top: 0;
+}
+
+#bga_import input {
+    padding: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    width: 150px;
+}
+
+#scraper_result {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: bold;
+}
