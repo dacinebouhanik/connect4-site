@@ -1,4 +1,6 @@
 from db import chercher_parties_similaires
+import random
+
 
 def proposer_coup_depuis_base(coups_actuels, joueur_courant, colonnes_valides):
 
@@ -17,12 +19,15 @@ def proposer_coup_depuis_base(coups_actuels, joueur_courant, colonnes_valides):
         prochain_coup = coups[len(coups_actuels)]
 
         if prochain_coup not in stats:
-            stats[prochain_coup] = 0
+            stats[prochain_coup] = {
+                "score": 0,
+                "parties": 0
+            }
 
         score = 0
 
         if resultat == "nul":
-            score = 0.5
+            score = 0.2
 
         elif resultat == "rouge":
             score = 1 if joueur_courant == 1 else -1
@@ -30,16 +35,49 @@ def proposer_coup_depuis_base(coups_actuels, joueur_courant, colonnes_valides):
         elif resultat == "jaune":
             score = 1 if joueur_courant == 2 else -1
 
-        stats[prochain_coup] += score * confiance
+        stats[prochain_coup]["score"] += score * confiance
+        stats[prochain_coup]["parties"] += 1
 
     if not stats:
         return None
 
-    meilleur = max(stats, key=stats.get)
 
-    col = int(meilleur) - 1
+    # supprimer coups avec trop peu de données
+    MIN_PARTIES = 3
 
-    if col not in colonnes_valides:
+    coups_valides = {}
+
+    for coup, data in stats.items():
+
+        if data["parties"] >= MIN_PARTIES:
+
+            moyenne = data["score"] / data["parties"]
+
+            coups_valides[coup] = moyenne
+
+
+    if not coups_valides:
         return None
 
-    return col
+
+    # trouver meilleur score
+    best_score = max(coups_valides.values())
+
+    meilleurs_coups = [
+        int(c) - 1
+        for c, s in coups_valides.items()
+        if s == best_score
+    ]
+
+
+    # garder seulement colonnes jouables
+    meilleurs_coups = [
+        c for c in meilleurs_coups
+        if c in colonnes_valides
+    ]
+
+    if not meilleurs_coups:
+        return None
+
+
+    return random.choice(meilleurs_coups)

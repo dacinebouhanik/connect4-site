@@ -287,21 +287,17 @@ def annuler():
 # CHANGER MODE
 # =========================================================
 
+
 @app.route("/api/mode", methods=["POST"])
 def changer_mode():
 
-    global mode, partie_sauvegardee
+    global mode
 
     data = request.get_json()
 
     mode = int(data["mode"])
 
-    modele.nouvelle_partie()
-
-    partie_sauvegardee = False
-
     return jsonify({"status": "ok"})
-
 
 # =========================================================
 # HISTORIQUE

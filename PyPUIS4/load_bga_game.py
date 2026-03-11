@@ -24,7 +24,7 @@ print("Test DB:", test_connexion())
 ROWS = 9
 COLS = 9
 
-PLAYER_IDS = ["94154229"]
+PLAYER_IDS = ["94154229","98887363","99036079","99310859"]
 
 BOARD_SIZE_CODE = f"{ROWS}{COLS}"
 
