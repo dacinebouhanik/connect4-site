@@ -1,91 +1,6 @@
-/* ================================
-   REPLAY
-================================ */
-
-let replayCoups = [];
-let replayIndex = 0;
-let replayTimer = null;
-
 let timerIA = null;
 let delaiIAActuel = 600;
-/* ================================
-   REPLAY CONTROLS
-================================ */
 
-function replaySuivant() {
-
-    if (replayIndex >= replayCoups.length) return;
-
-    jouer(replayCoups[replayIndex]);
-
-    replayIndex++;
-
-}
-
-async function replayPrecedent() {
-
-    if (replayIndex <= 0) return;
-
-    replayIndex--;
-
-    await nouvellePartie();
-
-    for (let i = 0; i < replayIndex; i++) {
-        await jouer(replayCoups[i]);
-    }
-
-}
-
-function replayAuto() {
-
-    if (replayTimer) return;
-
-    replayTimer = setInterval(async () => {
-
-        if (replayIndex >= replayCoups.length) {
-
-            clearInterval(replayTimer);
-            replayTimer = null;
-            return;
-
-        }
-
-        replaySuivant();
-
-    }, 600);
-
-}
-
-/* ================================
-   AFFICHER SEQUENCE
-================================ */
-
-function afficherSequence(sequence) {
-
-    const zone = document.getElementById("sequence");
-
-    if (!zone) return;
-
-    zone.innerHTML = "";
-
-    for (let i = 0; i < sequence.length; i++) {
-
-        const span = document.createElement("span");
-
-        span.innerText = sequence[i] + " ";
-
-        span.style.fontWeight = "bold";
-
-        if (i % 2 === 0)
-            span.style.color = "red";
-        else
-            span.style.color = "gold";
-
-        zone.appendChild(span);
-
-    }
-
-}
 /* ================================
    CHARGER PLATEAU
 ================================ */
@@ -379,7 +294,7 @@ async function chargerPartie(id) {
     chargerPlateau();
 
 }
->
+
 
 /* ================================
    INITIALISATION
