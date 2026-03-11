@@ -113,3 +113,81 @@ text-align:center;
 background:#f7f9fc;
 
 }
+
+
+/* ========================= */
+/* STYLE DU PLATEAU */
+/* ========================= */
+
+#plateau{
+
+display:grid;
+grid-template-columns: repeat(9,60px);
+gap:8px;
+justify-content:center;
+margin-top:30px;
+
+}
+
+.case{
+
+width:60px;
+height:60px;
+background:#27466f;
+border-radius:10px;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+cursor:pointer;
+
+}
+
+.case:hover{
+
+background:#1e3555;
+
+}
+
+.pion{
+
+width:40px;
+height:40px;
+border-radius:50%;
+background:white;
+
+}
+
+.pion.rouge{
+
+background:#e63946;
+
+}
+
+.pion.jaune{
+
+background:#f4b400;
+
+}
+
+
+/* zone info */
+
+#info{
+
+text-align:center;
+font-weight:bold;
+margin-top:10px;
+
+}
+
+
+/* scores minimax */
+
+#scores{
+
+text-align:center;
+margin-top:10px;
+
+}
