@@ -201,6 +201,18 @@ async function ouvrirHistorique(){
 
 }
 
+function appliquerConfigIA(){
+
+    const champ = document.getElementById("delaiIA");
+
+    delaiIAActuel = parseInt(champ.value) || 600;
+
+    console.log("Nouveau délai IA :", delaiIAActuel);
+
+    stopperIA();   // arrêter l'ancien timer
+    demarrerIA();  // redémarrer avec le nouveau délai
+
+}
 
 async function chargerHistorique(){
 
