@@ -4,7 +4,6 @@
 <head>
 
 <meta charset="utf-8">
-
 <title>Puissance 4</title>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -17,24 +16,16 @@
 
 <h1>Puissance 4</h1>
 
-<!-- CONTROLS -->
-
 <div class="controls">
 
 <button onclick="nouvellePartie()">Nouvelle partie</button>
-
 <button onclick="annulerCoup()">Annuler coup</button>
-
 <button onclick="ouvrirHistorique()">Historique</button>
 
 <select id="modeSelect" onchange="changerMode()">
-
 <option value="2">2 joueurs humains</option>
-
 <option value="1">1 joueur vs IA</option>
-
 <option value="0">0 joueur (IA vs IA)</option>
-
 </select>
 
 </div>
@@ -97,7 +88,7 @@ Profondeur :
 
 <strong>Délai IA (ms)</strong>
 
-<input id="delaiIA" type="number" value="600" min="50" step="50">
+<input id="delaiIA" type="number" value="600">
 
 <button onclick="appliquerConfigIA()">Valider</button>
 
@@ -105,21 +96,15 @@ Profondeur :
 
 </div>
 
-<!-- INFO PARTIE -->
-
 <p id="info"></p>
 
-<!-- PLATEAU -->
-
 <div id="plateau"></div>
-
-<!-- SCORES MINIMAX -->
 
 <div id="scores"></div>
 
 <!-- HISTORIQUE -->
 
-<div id="historique">
+<div id="historique" class="historique-container">
 
 <h3>Historique des parties</h3>
 
@@ -128,14 +113,12 @@ Profondeur :
 <thead>
 
 <tr>
-
 <th>ID</th>
 <th>Date</th>
 <th>Coups</th>
 <th>Résultat</th>
 <th>Statut</th>
 <th>Action</th>
-
 </tr>
 
 </thead>
