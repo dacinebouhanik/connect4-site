@@ -310,6 +310,8 @@ async function chargerPartie(id) {
 
     await nouvellePartie();
 
+    await replaySuivant();   // joue le premier coup
+
     afficherSequence(data.coups);
 
 }
