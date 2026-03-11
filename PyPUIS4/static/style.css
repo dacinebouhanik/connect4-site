@@ -141,3 +141,35 @@ button:hover {
 #listeParties {
     text-align: left;
 }
+/* ================= TABLE HISTORIQUE ================= */
+
+.table-historique {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.table-historique th {
+    background-color: #1e3a5f;
+    color: white;
+    padding: 8px;
+    text-align: center;
+}
+
+.table-historique td {
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.table-historique tr:hover {
+    background-color: #f5f7fb;
+}
+
+.table-historique button {
+    padding: 4px 10px;
+    font-size: 12px;
+    background-color: #26486b;
+    border-radius: 6px;
+}
