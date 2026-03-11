@@ -288,16 +288,36 @@ select{
 
 
 /* ================= INFO ================= */
-
 #info{
 
-    font-size:20px;
+    font-size:22px;
     font-weight:bold;
+
     margin-top:18px;
+
+    color:#facc15;
+
+    text-shadow:
+        0 0 8px rgba(250,204,21,0.7),
+        0 0 15px rgba(250,204,21,0.4);
 
 }
 
+/* ================= IA THINKING ================= */
 
+.ia-thinking{
+
+    animation:iaThinking 1.2s infinite;
+
+}
+
+@keyframes iaThinking{
+
+    0%{opacity:0.4;}
+    50%{opacity:1;}
+    100%{opacity:0.4;}
+
+}
 /* ================= SCORES ================= */
 
 #scoresMinimax{

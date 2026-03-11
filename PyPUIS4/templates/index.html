@@ -13,7 +13,7 @@
 <body>
 
 
-<!-- HEADER SITE -->
+<!-- ================= HEADER ================= -->
 
 <div class="site-header">
 
@@ -29,7 +29,7 @@ by HichamDacine
 
 
 
-<!-- CONTROLES -->
+<!-- ================= CONTROLES ================= -->
 
 <div class="controls">
 
@@ -45,7 +45,7 @@ by HichamDacine
 
 <option value="1">1 joueur vs IA</option>
 
-<option value="0">0 joueur (IA vs IA)</option>
+<option value="0">IA vs IA</option>
 
 </select>
 
@@ -53,13 +53,13 @@ by HichamDacine
 
 
 
-<!-- LAYOUT PRINCIPAL -->
+<!-- ================= LAYOUT PRINCIPAL ================= -->
 
 <div class="game-layout">
 
 
 
-<!-- PANNEAU IA -->
+<!-- ================= PANNEAU IA ================= -->
 
 <div id="zoneIA" class="ia-panel" style="display:none;">
 
@@ -71,24 +71,19 @@ by HichamDacine
 <strong>Rouge</strong>
 
 <select id="strategieRouge">
-
 <option value="aleatoire">Aléatoire</option>
-
 <option value="minimax" selected>Minimax</option>
-
 </select>
 
 <label>Profondeur</label>
 
 <select id="profRouge">
-
 <option>1</option>
 <option selected>2</option>
 <option>3</option>
 <option>4</option>
 <option>5</option>
 <option>6</option>
-
 </select>
 
 </div>
@@ -100,24 +95,19 @@ by HichamDacine
 <strong>Jaune</strong>
 
 <select id="strategieJaune">
-
 <option value="aleatoire">Aléatoire</option>
-
 <option value="minimax" selected>Minimax</option>
-
 </select>
 
 <label>Profondeur</label>
 
 <select id="profJaune">
-
 <option>1</option>
 <option selected>2</option>
 <option>3</option>
 <option>4</option>
 <option>5</option>
 <option>6</option>
-
 </select>
 
 </div>
@@ -145,18 +135,24 @@ step="50"
 
 
 
-<!-- CENTRE JEU -->
+<!-- ================= CENTRE JEU ================= -->
 
 <div class="game-center">
 
-<p id="info"></p>
+<!-- MESSAGE JEU / IA -->
+
+<p id="info">Chargement...</p>
+
+<!-- PLATEAU -->
 
 <div id="plateau"></div>
+
+<!-- SCORES MINIMAX -->
 
 <div id="scores" style="margin-top:10px;"></div>
 
 
-<!-- CONTROLES REPLAY -->
+<!-- ================= CONTROLES REPLAY ================= -->
 
 <div id="replayControls" style="display:none; margin-top:20px;">
 
@@ -174,7 +170,7 @@ step="50"
 
 
 
-<!-- MODAL HISTORIQUE -->
+<!-- ================= MODAL HISTORIQUE ================= -->
 
 <div id="modalHistorique" class="modal">
 
@@ -209,6 +205,8 @@ step="50"
 
 
 
+<!-- ================= FERMETURE MODAL ================= -->
+
 <script>
 
 window.onclick = function(event) {
@@ -216,9 +214,7 @@ window.onclick = function(event) {
 const modal = document.getElementById("modalHistorique");
 
 if (event.target === modal) {
-
 modal.style.display = "none";
-
 }
 
 }

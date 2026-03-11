@@ -15,7 +15,7 @@ let replayActif = false;
 ================================ */
 
 async function chargerPlateau() {
-
+    info.classList.remove("ia-thinking");
     if (replayActif) return;
 
     const res = await fetch("/api/plateau");
@@ -91,6 +91,10 @@ function afficherPlateau(plateau, data = null){
 
 async function jouer(col){
 
+    const info = document.getElementById("info");
+
+    info.innerHTML = "🧠 IA réfléchit...";
+    info.classList.add("ia-thinking");
     await fetch("/api/jouer",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -162,6 +166,9 @@ function demarrerIA(){
     const d = parseInt(delaiIAActuel) || 600;
 
     timerIA = setInterval(async ()=>{
+
+        const info = document.getElementById("info");
+        info.innerHTML = "🤖 IA joue...";
 
         await fetch("/api/ia_step",{method:"POST"});
         await chargerPlateau();
