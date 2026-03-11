@@ -1,20 +1,16 @@
+/* ================= GLOBAL ================= */
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f2f4f8;
     margin: 0;
-}
-
-/* ===== CONTENEUR GLOBAL ===== */
-
-body {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 h1 {
-    margin: 15px 0 5px 0;
-    font-size: 26px;
+    margin: 20px 0 10px 0;
 }
 
 /* ================= CONTROLS ================= */
@@ -23,9 +19,24 @@ h1 {
     margin-bottom: 10px;
 }
 
+button {
+    padding: 6px 12px;
+    margin: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: none;
+    background-color: #26486b;
+    color: white;
+    transition: 0.2s;
+}
+
+button:hover {
+    background-color: #3b5f86;
+}
+
 select {
     padding: 4px;
-    font-size: 13px;
     border-radius: 5px;
 }
 
@@ -41,35 +52,22 @@ select {
     max-width: 90%;
 }
 
-#zoneIA h3 {
-    margin-top: 0;
-}
-
-#zoneIA select,
-#zoneIA input {
-    padding: 4px;
-    margin: 3px;
-    border-radius: 5px;
-    font-size: 13px;
-}
-
 /* ================= PLATEAU ================= */
 
 #plateau {
     display: grid;
     gap: 4px;
     justify-content: center;
-    margin: 15px auto;
+    margin: 20px auto;
     padding: 12px;
     background-color: #1e3a5f;
     border-radius: 15px;
-    width: fit-content;
-    max-width: 95vw;
 }
 
-/* Case */
+/* Cases */
+
 .case {
-    width: 38px;      /* plus petit */
+    width: 38px;
     height: 38px;
     background-color: white;
     border-radius: 50%;
@@ -78,66 +76,79 @@ select {
     justify-content: center;
     font-size: 18px;
     cursor: pointer;
-    transition: transform 0.1s;
 }
 
 .case:hover {
     transform: scale(1.05);
 }
 
-.rouge { color: #d62828; }
-.jaune { color: #ffd60a; }
-
-/* ================= BOUTONS ================= */
-
-button {
-    padding: 5px 12px;
-    margin: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    border-radius: 6px;
-    border: none;
-    background-color: #26486b;
-    color: white;
-    transition: 0.2s;
+.rouge {
+    color: #d62828;
 }
 
-button:hover {
-    background-color: #3b5f86;
+.jaune {
+    color: #ffd60a;
 }
 
 /* ================= INFO ================= */
 
 #info {
-    font-size: 15px;
-    margin: 8px;
     font-weight: bold;
-}
-
-/* ================= SCORES MINIMAX ================= */
-
-#scoresMinimax {
-    margin-top: 8px;
-}
-
-#scoresMinimax div {
-    font-size: 12px;
-    color: #2f7d32;
-    font-weight: bold;
+    margin-top: 10px;
 }
 
 /* ================= HISTORIQUE ================= */
 
 #historique {
     background: white;
-    padding: 15px;
-    margin: 20px auto;
-    width: 600px;
-    max-width: 90%;
+    padding: 20px;
+    margin: 30px auto;
+    width: 700px;
+    max-width: 95%;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-#listeParties {
-    text-align: left;
+/* Tableau */
+
+.table-historique {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.table-historique th {
+    background-color: #1e3a5f;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.table-historique td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.table-historique tr:hover {
+    background-color: #f5f7fb;
+}
+
+/* Bouton charger */
+
+.table-historique button {
+    padding: 4px 10px;
+    font-size: 12px;
+    background-color: #26486b;
+    border-radius: 6px;
+}
+
+.table-historique button:hover {
+    background-color: #3b5f86;
+}
+
+/* ================= SCORES ================= */
+
+#scores {
+    margin-top: 10px;
 }
