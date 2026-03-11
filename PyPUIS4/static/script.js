@@ -18,11 +18,12 @@ async function chargerPlateau() {
 
     if (replayActif) return;
 
-    const info = document.getElementById("info");   // ✔ déclarer ici
+    const info = document.getElementById("info");
     info.classList.remove("ia-thinking");
 
     const res = await fetch("/api/plateau");
     const data = await res.json();
+
     const modeSelect = document.getElementById("modeSelect");
     if (modeSelect) modeSelect.value = String(data.mode);
 
@@ -32,8 +33,6 @@ async function chargerPlateau() {
     }
 
     afficherPlateau(data.plateau, data);
-
-    const info = document.getElementById("info");
 
     if (data.resultat) {
         info.innerHTML = "🏆 Partie terminée : " + data.resultat;
