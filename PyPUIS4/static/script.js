@@ -15,12 +15,14 @@ let replayActif = false;
 ================================ */
 
 async function chargerPlateau() {
-    info.classList.remove("ia-thinking");
+
     if (replayActif) return;
+
+    const info = document.getElementById("info");   // ✔ déclarer ici
+    info.classList.remove("ia-thinking");
 
     const res = await fetch("/api/plateau");
     const data = await res.json();
-
     const modeSelect = document.getElementById("modeSelect");
     if (modeSelect) modeSelect.value = String(data.mode);
 
