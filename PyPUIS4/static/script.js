@@ -1,9 +1,17 @@
 let timerIA = null;
 let delaiIAActuel = 600;
 
-/* ================================
+/* =========================
+   VARIABLES REPLAY
+========================= */
+
+let replayCoups = [];
+let replayIndex = 0;
+
+
+/* =========================
    CHARGER PLATEAU
-================================ */
+========================= */
 
 async function chargerPlateau() {
 
@@ -16,35 +24,32 @@ async function chargerPlateau() {
     const nbColonnes = data.plateau[0].length;
 
     plateauDiv.style.display = "grid";
-    plateauDiv.style.gridTemplateColumns = `repeat(${nbColonnes}, 38px)`;
+    plateauDiv.style.gridTemplateColumns = `repeat(${nbColonnes},38px)`;
     plateauDiv.style.gap = "4px";
-    plateauDiv.style.justifyContent = "center";
 
-    data.plateau.forEach((ligne) => {
+    data.plateau.forEach(ligne => {
 
-        ligne.forEach((cell, colIndex) => {
+        ligne.forEach((cell,colIndex)=>{
 
-            const div = document.createElement("div");
-            div.className = "case";
+            const div=document.createElement("div");
+            div.className="case";
 
-            div.style.width = "38px";
-            div.style.height = "38px";
+            div.style.width="38px";
+            div.style.height="38px";
 
-            if (cell === 1) {
-                div.innerHTML = "●";
+            if(cell===1){
+                div.innerHTML="●";
                 div.classList.add("rouge");
             }
 
-            if (cell === 2) {
-                div.innerHTML = "●";
+            if(cell===2){
+                div.innerHTML="●";
                 div.classList.add("jaune");
             }
 
-            div.onclick = () => {
-                if (!data.resultat) {
-                    jouer(colIndex);
-                }
-            };
+            div.onclick=()=>{
+                jouer(colIndex);
+            }
 
             plateauDiv.appendChild(div);
 
@@ -52,30 +57,21 @@ async function chargerPlateau() {
 
     });
 
-    const info = document.getElementById("info");
-
-    if (data.resultat) {
-        info.innerHTML = "Partie terminée : " + data.resultat;
-    }
-    else {
-        info.innerHTML = "Joueur : " + (data.joueur === 1 ? "Rouge" : "Jaune");
-    }
-
 }
 
 
-/* ================================
+/* =========================
    JOUER
-================================ */
+========================= */
 
-async function jouer(col) {
+async function jouer(col){
 
-    await fetch("/api/jouer", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
+    await fetch("/api/jouer",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
         },
-        body: JSON.stringify({ col: col })
+        body:JSON.stringify({col:col})
     });
 
     chargerPlateau();
@@ -83,11 +79,11 @@ async function jouer(col) {
 }
 
 
-/* ================================
+/* =========================
    NOUVELLE PARTIE
-================================ */
+========================= */
 
-async function nouvellePartie() {
+async function nouvellePartie(){
 
     await fetch("/api/nouvelle");
 
@@ -96,57 +92,34 @@ async function nouvellePartie() {
 }
 
 
-/* ================================
-   ANNULER
-================================ */
-
-async function annulerCoup() {
-
-    await fetch("/api/annuler");
-
-    chargerPlateau();
-
-}
-
-
-/* ================================
+/* =========================
    HISTORIQUE
-================================ */
+========================= */
 
-async function chargerHistorique() {
+async function chargerHistorique(){
 
-    const res = await fetch("/api/historique");
-    const data = await res.json();
+    const res=await fetch("/api/historique");
+    const data=await res.json();
 
-    const liste = document.getElementById("listeParties");
+    const liste=document.getElementById("listeParties");
 
-    if (!liste) return;
+    liste.innerHTML="";
 
-    liste.innerHTML = "";
+    data.forEach(partie=>{
 
-    data.forEach(partie => {
+        const ligne=document.createElement("tr");
 
-        let resultatTexte = "Match nul";
-
-        if (partie.resultat === "rouge")
-            resultatTexte = "🔴 Rouge gagne";
-
-        if (partie.resultat === "jaune")
-            resultatTexte = "🟡 Jaune gagne";
-
-        const ligne = document.createElement("tr");
-
-        ligne.innerHTML = `
-            <td>${partie.id}</td>
-            <td>${partie.date}</td>
-            <td>${partie.coups ? partie.coups.length : 0}</td>
-            <td>${resultatTexte}</td>
-            <td>${partie.statut}</td>
-            <td>
-                <button onclick="chargerPartie(${partie.id})">
-                    Voir
-                </button>
-            </td>
+        ligne.innerHTML=`
+        <td>${partie.id}</td>
+        <td>${partie.date}</td>
+        <td>${partie.coups ? partie.coups.length : 0}</td>
+        <td>${partie.resultat}</td>
+        <td>${partie.statut}</td>
+        <td>
+        <button onclick="chargerPartie(${partie.id})">
+        Voir
+        </button>
+        </td>
         `;
 
         liste.appendChild(ligne);
@@ -155,77 +128,74 @@ async function chargerHistorique() {
 
 }
 
+function ouvrirHistorique(){
 
-function ouvrirHistorique() {
+    const zone=document.getElementById("historique");
 
-    const zone = document.getElementById("historique");
-
-    if (!zone) return;
-
-    if (zone.style.display === "none" || zone.style.display === "") {
-
-        zone.style.display = "block";
+    if(zone.style.display==="none" || zone.style.display===""){
+        zone.style.display="block";
         chargerHistorique();
-
-    } else {
-
-        zone.style.display = "none";
-
+    }else{
+        zone.style.display="none";
     }
 
 }
 
 
-/* ================================
-   CHARGER PARTIE
-================================ */
+/* =========================
+   CHARGER PARTIE POUR REPLAY
+========================= */
 
-async function chargerPartie(id) {
+async function chargerPartie(id){
 
-    await fetch("/api/charger/" + id);
+    const res=await fetch("/api/charger/"+id);
+    const data=await res.json();
 
-    chargerPlateau();
+    replayCoups=data.coups.split("").map(Number);
+
+    replayIndex=0;
+
+    await nouvellePartie();
 
 }
 
 
-/* ================================
+/* =========================
+   REPLAY SUIVANT
+========================= */
+
+async function replaySuivant(){
+
+    if(replayIndex>=replayCoups.length) return;
+
+    await jouer(replayCoups[replayIndex]);
+
+    replayIndex++;
+
+}
+
+
+/* =========================
+   REPLAY PRECEDENT
+========================= */
+
+async function replayPrecedent(){
+
+    if(replayIndex<=0) return;
+
+    replayIndex--;
+
+    await nouvellePartie();
+
+    for(let i=0;i<replayIndex;i++){
+        await jouer(replayCoups[i]);
+    }
+
+}
+
+
+/* =========================
    INITIALISATION
-================================ */
+========================= */
 
 chargerPlateau();
-/* ================================
-   FONCTIONS UTILISÉES PAR HTML
-   (pour éviter les erreurs console)
-================================ */
-
-function replayPrecedent(){
-    console.log("Replay précédent (désactivé)");
-}
-
-function replaySuivant(){
-    console.log("Replay suivant (désactivé)");
-}
-
-function replayAuto(){
-    console.log("Replay auto (désactivé)");
-}
-
-async function changerMode(){
-
-    const modeSelect = document.getElementById("modeSelect");
-
-    if(!modeSelect) return;
-
-    const mode = parseInt(modeSelect.value);
-
-    await fetch("/api/mode",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({mode:mode})
-    });
-
-    chargerPlateau();
-}
