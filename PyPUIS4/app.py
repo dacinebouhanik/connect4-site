@@ -1,7 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
-
 import os
 import random
 import init_db
@@ -174,11 +173,18 @@ def jouer_ia():
 
     joueur = modele.joueur_courant
 
-    ia_type = ia_rouge if joueur == modele.ROUGE else ia_jaune
+    if joueur == modele.ROUGE:
+        ia_type = ia_rouge
+    else:
+        ia_type = ia_jaune
+
+    # IA ALEATOIRE
 
     if ia_type == "aleatoire":
 
         col = modele.coup_aleatoire()
+
+    # IA MINIMAX
 
     else:
 
@@ -262,6 +268,42 @@ def nouvelle():
 
 
 # =========================================================
+# ANNULER COUP
+# =========================================================
+
+@app.route("/api/annuler")
+def annuler():
+
+    global partie_sauvegardee
+
+    modele.annuler_dernier_coup()
+
+    partie_sauvegardee = False
+
+    return jsonify({"status": "ok"})
+
+
+# =========================================================
+# CHANGER MODE
+# =========================================================
+
+@app.route("/api/mode", methods=["POST"])
+def changer_mode():
+
+    global mode, partie_sauvegardee
+
+    data = request.get_json()
+
+    mode = int(data["mode"])
+
+    modele.nouvelle_partie()
+
+    partie_sauvegardee = False
+
+    return jsonify({"status": "ok"})
+
+
+# =========================================================
 # HISTORIQUE
 # =========================================================
 
@@ -308,7 +350,7 @@ def charger_partie(partie_id):
 
 
 # =========================================================
-# LANCEMENT
+# LANCEMENT (RENDER)
 # =========================================================
 
 if __name__ == "__main__":
