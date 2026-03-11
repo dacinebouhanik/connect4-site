@@ -1,96 +1,230 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Puissance 4</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<meta charset="utf-8">
+
+<title>HichamDacine - Puissance 4</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
+
 <body>
 
-<h1>Puissance 4</h1>
+
+<!-- HEADER SITE -->
+
+<div class="site-header">
+
+<h1 class="title-game">
+Puissance <span>4</span>
+</h1>
+
+<div class="site-signature">
+by HichamDacine
+</div>
+
+</div>
+
+
+
+<!-- CONTROLES -->
 
 <div class="controls">
-    <button onclick="nouvellePartie()">Nouvelle partie</button>
-    <button onclick="annulerCoup()">Annuler coup</button>
-    <button onclick="ouvrirHistorique()">Historique</button>
 
-    <select id="modeSelect" onchange="changerMode()">
-        <option value="2">2 joueurs humains</option>
-        <option value="1">1 joueur vs IA</option>
-        <option value="0">0 joueur (IA vs IA)</option>
-    </select>
+<button onclick="nouvellePartie()">Nouvelle partie</button>
+
+<button onclick="annulerCoup()">Annuler coup</button>
+
+<button onclick="ouvrirHistorique()">Historique</button>
+
+<select id="modeSelect" onchange="changerMode()">
+
+<option value="2">2 joueurs humains</option>
+
+<option value="1">1 joueur vs IA</option>
+
+<option value="0">0 joueur (IA vs IA)</option>
+
+</select>
+
 </div>
 
-<!-- Réglages IA -->
-<div id="zoneIA" style="display:none; margin-top:10px;">
-    <h3>Réglages IA</h3>
 
-    <div style="margin-bottom:8px;">
-        <strong>Rouge</strong>
-        <select id="strategieRouge">
-            <option value="aleatoire">Aléatoire</option>
-            <option value="minimax" selected>Minimax</option>
-        </select>
 
-        Profondeur :
-        <select id="profRouge">
-            <option>1</option><option selected>2</option><option>3</option>
-            <option>4</option><option>5</option><option>6</option>
-        </select>
-    </div>
+<!-- LAYOUT PRINCIPAL -->
 
-    <div style="margin-bottom:8px;">
-        <strong>Jaune</strong>
-        <select id="strategieJaune">
-            <option value="aleatoire">Aléatoire</option>
-            <option value="minimax" selected>Minimax</option>
-        </select>
+<div class="game-layout">
 
-        Profondeur :
-        <select id="profJaune">
-            <option>1</option><option selected>2</option><option>3</option>
-            <option>4</option><option>5</option><option>6</option>
-        </select>
-    </div>
 
-    <div style="margin-bottom:8px;">
-        <strong>Délai IA (ms)</strong>
-        <input id="delaiIA" type="number" value="600" min="50" step="50" style="width:90px;">
-        <button onclick="appliquerConfigIA()">Valider</button>
-    </div>
+
+<!-- PANNEAU IA -->
+
+<div id="zoneIA" class="ia-panel" style="display:none;">
+
+<h3>Réglages IA</h3>
+
+
+<div class="ia-block">
+
+<strong>Rouge</strong>
+
+<select id="strategieRouge">
+
+<option value="aleatoire">Aléatoire</option>
+
+<option value="minimax" selected>Minimax</option>
+
+</select>
+
+<label>Profondeur</label>
+
+<select id="profRouge">
+
+<option>1</option>
+<option selected>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+
+</select>
+
 </div>
+
+
+
+<div class="ia-block">
+
+<strong>Jaune</strong>
+
+<select id="strategieJaune">
+
+<option value="aleatoire">Aléatoire</option>
+
+<option value="minimax" selected>Minimax</option>
+
+</select>
+
+<label>Profondeur</label>
+
+<select id="profJaune">
+
+<option>1</option>
+<option selected>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+
+</select>
+
+</div>
+
+
+
+<div class="ia-block">
+
+<strong>Délai IA (ms)</strong>
+
+<input
+id="delaiIA"
+type="number"
+value="600"
+min="50"
+step="50"
+>
+
+<button onclick="appliquerConfigIA()">Valider</button>
+
+</div>
+
+</div>
+
+
+
+
+<!-- CENTRE JEU -->
+
+<div class="game-center">
 
 <p id="info"></p>
 
 <div id="plateau"></div>
 
-<!-- scores minimax -->
 <div id="scores" style="margin-top:10px;"></div>
 
-<!-- HISTORIQUE -->
-<div id="historique" style="display:none; margin-top:20px;">
 
-    <h3>Historique des parties</h3>
+<!-- CONTROLES REPLAY -->
 
-    <table class="table-historique">
+<div id="replayControls" style="display:none; margin-top:20px;">
 
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>Coups</th>
-                <th>Résultat</th>
-                <th>Statut</th>
-                <th>Action</th>
-            </tr>
-        </thead>
+<button onclick="coupPrecedent()">⬅ Précédent</button>
 
-        <tbody id="listeParties">
-        </tbody>
-
-    </table>
+<button onclick="coupSuivant()">Suivant ➡</button>
 
 </div>
+
+
+</div>
+
+
+</div>
+
+
+
+<!-- MODAL HISTORIQUE -->
+
+<div id="modalHistorique" class="modal">
+
+<div class="modal-content">
+
+<span class="close" onclick="fermerHistorique()">&times;</span>
+
+<h2>Historique des parties</h2>
+
+<table class="table-historique">
+
+<thead>
+
+<tr>
+<th>#</th>
+<th>Date</th>
+<th>Coups</th>
+<th>Résultat</th>
+<th>Statut</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="listeParties"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+window.onclick = function(event) {
+
+const modal = document.getElementById("modalHistorique");
+
+if (event.target === modal) {
+
+modal.style.display = "none";
+
+}
+
+}
+
+</script>
+
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
