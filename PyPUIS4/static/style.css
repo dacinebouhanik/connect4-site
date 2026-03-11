@@ -70,6 +70,10 @@ flex:1;
 
 }
 
+/* ========================= */
+/* HISTORIQUE */
+/* ========================= */
+
 .historique-container{
 
 margin-top:30px;
@@ -84,6 +88,7 @@ box-shadow:0 4px 12px rgba(0,0,0,0.08);
 
 width:100%;
 border-collapse:collapse;
+font-size:14px;
 
 }
 
@@ -96,7 +101,8 @@ color:white;
 
 .table-historique th{
 
-padding:10px;
+padding:12px;
+text-align:left;
 
 }
 
@@ -104,7 +110,6 @@ padding:10px;
 
 padding:10px;
 border-bottom:1px solid #eee;
-text-align:center;
 
 }
 
@@ -114,6 +119,60 @@ background:#f7f9fc;
 
 }
 
+/* RESULTAT */
+
+.resultat{
+
+display:flex;
+align-items:center;
+gap:8px;
+
+}
+
+.pion-mini{
+
+width:14px;
+height:14px;
+border-radius:50%;
+
+}
+
+.pion-mini.rouge{
+
+background:#e63946;
+
+}
+
+.pion-mini.jaune{
+
+background:#f4b400;
+
+}
+
+.pion-mini.nul{
+
+background:#999;
+
+}
+
+/* bouton voir */
+
+.btn-voir{
+
+background:#3a5a8a;
+border:none;
+color:white;
+padding:6px 12px;
+border-radius:6px;
+cursor:pointer;
+
+}
+
+.btn-voir:hover{
+
+background:#223b63;
+
+}
 
 /* ========================= */
 /* STYLE DU PLATEAU */
@@ -171,7 +230,6 @@ background:#f4b400;
 
 }
 
-
 /* zone info */
 
 #info{
@@ -181,7 +239,6 @@ font-weight:bold;
 margin-top:10px;
 
 }
-
 
 /* scores minimax */
 
