@@ -1,54 +1,9 @@
 let timerIA = null;
 let delaiIAActuel = 600;
-/* ================================
-   REPLAY PARTIE
-================================ */
-
-let replayCoups = [];
-let replayIndex = 0;
-let replayTimer = null;
 
 /* ================================
    CHARGER PLATEAU
 ================================ */
-/* ================================
-   IMPORTER PARTIE BGA
-================================ */
-
-async function importerSequence() {
-
-    const seq = document.getElementById("bga_sequence").value;
-
-    if (!seq) {
-        alert("Entre une séquence de coups");
-        return;
-    }
-
-    try {
-
-        const res = await fetch("/api/import_sequence", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ coups: seq })
-        });
-
-        const data = await res.json();
-
-        const msg = document.getElementById("import_result");
-
-        if (msg) {
-            msg.innerText = data.message;
-        }
-
-        chargerHistorique();
-
-    } catch (err) {
-        console.error("Erreur import :", err);
-    }
-
-}
 
 async function chargerPlateau() {
 
@@ -328,101 +283,19 @@ function ouvrirHistorique() {
 }
 
 
-
 /* ================================
    CHARGER PARTIE
 ================================ */
 
 async function chargerPartie(id) {
 
-    const res = await fetch("/api/charger/" + id);
-    const data = await res.json();
+    await fetch("/api/charger/" + id);
 
-    if (!data.coups) {
-        chargerPlateau();
-        return;
-    }
-
-    if (typeof data.coups === "string") {
-    replayCoups = data.coups.split("").map(Number);
-} else {
-    replayCoups = data.coups.map(Number);
-}
-    replayIndex = 0;
-
-    nouvellePartie();
-
-    afficherSequence(data.coups);
+    chargerPlateau();
 
 }
 
-function replaySuivant() {
 
-    if (replayIndex >= replayCoups.length) return;
-
-    jouer(replayCoups[replayIndex]);
-
-    replayIndex++;
-
-}
-async function replayPrecedent() {
-
-    if (replayIndex <= 0) return;
-
-    replayIndex--;
-
-    await nouvellePartie();
-
-    for (let i = 0; i < replayIndex; i++) {
-        await jouer(replayCoups[i]);
-    }
-
-}
-function replayAuto() {
-
-    if (replayTimer) return;
-
-    replayTimer = setInterval(() => {
-
-        if (replayIndex >= replayCoups.length) {
-
-            clearInterval(replayTimer);
-            replayTimer = null;
-            return;
-
-        }
-
-        await replaySuivant();
-
-    }, 600);
-
-}
-function afficherSequence(sequence) {
-
-    const zone = document.getElementById("sequence");
-
-    if (!zone) return;
-
-    zone.innerHTML = "";
-
-    for (let i = 0; i < sequence.length; i++) {
-
-        const span = document.createElement("span");
-
-        span.innerText = sequence[i] + " ";
-
-        span.style.fontWeight = "bold";
-
-        if (i % 2 === 0)
-            span.style.color = "red";
-        else
-            span.style.color = "gold";
-
-        zone.appendChild(span);
-
-    }
-
-}
 /* ================================
    INITIALISATION
 ================================ */
