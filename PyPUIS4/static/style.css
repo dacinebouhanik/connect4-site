@@ -1,115 +1,76 @@
-body{
+/* ================= HISTORIQUE ================= */
 
-font-family: Arial;
-background:#f3f5f8;
-margin:0;
-
+#historique {
+    background: white;
+    padding: 20px;
+    margin: 25px auto;
+    width: 700px;
+    max-width: 95%;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.container{
+/* Tableau */
 
-max-width:1000px;
-margin:auto;
-padding:20px;
-
+.table-historique {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
 }
 
-h1{
+/* Header */
 
-text-align:center;
-color:#223b63;
-
+.table-historique th {
+    background-color: #1e3a5f;
+    color: white;
+    padding: 10px;
+    text-align: center;
 }
 
-.controls{
+/* Lignes */
 
-display:flex;
-gap:10px;
-justify-content:center;
-margin-bottom:20px;
-
+.table-historique td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #e2e2e2;
 }
 
-button{
+/* Hover */
 
-background:#3a5a8a;
-color:white;
-border:none;
-padding:8px 14px;
-border-radius:6px;
-cursor:pointer;
-
+.table-historique tr:hover {
+    background-color: #f5f7fb;
 }
 
-button:hover{
+/* Bouton charger */
 
-background:#223b63;
-
+.table-historique button {
+    padding: 5px 12px;
+    font-size: 13px;
+    background-color: #26486b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-.zone-ia{
-
-background:white;
-padding:15px;
-border-radius:10px;
-box-shadow:0 4px 12px rgba(0,0,0,0.08);
-margin-bottom:20px;
-
+.table-historique button:hover {
+    background-color: #3b5f86;
 }
 
-.ia-row{
+/* Couleurs résultat */
 
-display:flex;
-gap:20px;
-
+.resultat-rouge {
+    color: #d62828;
+    font-weight: bold;
 }
 
-.ia-block{
-
-flex:1;
-
+.resultat-jaune {
+    color: #f1b000;
+    font-weight: bold;
 }
 
-.historique-container{
-
-margin-top:30px;
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 4px 12px rgba(0,0,0,0.08);
-
-}
-
-.table-historique{
-
-width:100%;
-border-collapse:collapse;
-
-}
-
-.table-historique thead{
-
-background:#2d4b75;
-color:white;
-
-}
-
-.table-historique th{
-
-padding:10px;
-
-}
-
-.table-historique td{
-
-padding:10px;
-border-bottom:1px solid #eee;
-text-align:center;
-
-}
-
-.table-historique tr:hover{
-
-background:#f7f9fc;
-
+.resultat-nul {
+    color: gray;
+    font-weight: bold;
 }
