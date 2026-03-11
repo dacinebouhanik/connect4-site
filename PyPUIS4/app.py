@@ -306,11 +306,14 @@ def charger_partie(partie_id):
 
     coups = partie[5]
 
+    # garantir que coups est une string
+    if not isinstance(coups, str):
+        coups = "".join(map(str, coups))
+
     return jsonify({
         "status": "ok",
         "coups": coups
     })
-
 # =========================================================
 # LANCEMENT
 # =========================================================

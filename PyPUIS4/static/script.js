@@ -343,7 +343,11 @@ async function chargerPartie(id) {
         return;
     }
 
+    if (typeof data.coups === "string") {
     replayCoups = data.coups.split("").map(Number);
+} else {
+    replayCoups = data.coups.map(Number);
+}
     replayIndex = 0;
 
     nouvellePartie();
@@ -361,16 +365,16 @@ function replaySuivant() {
     replayIndex++;
 
 }
-function replayPrecedent() {
+async function replayPrecedent() {
 
     if (replayIndex <= 0) return;
 
     replayIndex--;
 
-    nouvellePartie();
+    await nouvellePartie();
 
     for (let i = 0; i < replayIndex; i++) {
-        jouer(replayCoups[i]);
+        await jouer(replayCoups[i]);
     }
 
 }
@@ -388,7 +392,7 @@ function replayAuto() {
 
         }
 
-        replaySuivant();
+        await replaySuivant();
 
     }, 600);
 
