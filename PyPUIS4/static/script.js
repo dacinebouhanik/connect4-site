@@ -194,3 +194,38 @@ async function chargerPartie(id) {
 ================================ */
 
 chargerPlateau();
+/* ================================
+   FONCTIONS UTILISÉES PAR HTML
+   (pour éviter les erreurs console)
+================================ */
+
+function replayPrecedent(){
+    console.log("Replay précédent (désactivé)");
+}
+
+function replaySuivant(){
+    console.log("Replay suivant (désactivé)");
+}
+
+function replayAuto(){
+    console.log("Replay auto (désactivé)");
+}
+
+async function changerMode(){
+
+    const modeSelect = document.getElementById("modeSelect");
+
+    if(!modeSelect) return;
+
+    const mode = parseInt(modeSelect.value);
+
+    await fetch("/api/mode",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({mode:mode})
+    });
+
+    chargerPlateau();
+}
