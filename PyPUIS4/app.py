@@ -304,8 +304,12 @@ def charger_partie(partie_id):
 
     partie_sauvegardee = True
 
-    return jsonify({"status": "ok"})
+    coups = partie[5]
 
+    return jsonify({
+        "status": "ok",
+        "coups": coups
+    })
 
 # =========================================================
 # LANCEMENT

@@ -1,5 +1,12 @@
 let timerIA = null;
 let delaiIAActuel = 600;
+/* ================================
+   REPLAY PARTIE
+================================ */
+
+let replayCoups = [];
+let replayIndex = 0;
+let replayTimer = null;
 
 /* ================================
    CHARGER PLATEAU
@@ -328,13 +335,90 @@ function ouvrirHistorique() {
 
 async function chargerPartie(id) {
 
-    await fetch("/api/charger/" + id);
+    const res = await fetch("/api/charger/" + id);
+    const data = await res.json();
 
-    chargerPlateau();
+    if (!data.coups) {
+        chargerPlateau();
+        return;
+    }
+
+    replayCoups = data.coups.split("").map(Number);
+    replayIndex = 0;
+
+    nouvellePartie();
+
+    afficherSequence(data.coups);
 
 }
 
+function replaySuivant() {
 
+    if (replayIndex >= replayCoups.length) return;
+
+    jouer(replayCoups[replayIndex]);
+
+    replayIndex++;
+
+}
+function replayPrecedent() {
+
+    if (replayIndex <= 0) return;
+
+    replayIndex--;
+
+    nouvellePartie();
+
+    for (let i = 0; i < replayIndex; i++) {
+        jouer(replayCoups[i]);
+    }
+
+}
+function replayAuto() {
+
+    if (replayTimer) return;
+
+    replayTimer = setInterval(() => {
+
+        if (replayIndex >= replayCoups.length) {
+
+            clearInterval(replayTimer);
+            replayTimer = null;
+            return;
+
+        }
+
+        replaySuivant();
+
+    }, 600);
+
+}
+function afficherSequence(sequence) {
+
+    const zone = document.getElementById("sequence");
+
+    if (!zone) return;
+
+    zone.innerHTML = "";
+
+    for (let i = 0; i < sequence.length; i++) {
+
+        const span = document.createElement("span");
+
+        span.innerText = sequence[i] + " ";
+
+        span.style.fontWeight = "bold";
+
+        if (i % 2 === 0)
+            span.style.color = "red";
+        else
+            span.style.color = "gold";
+
+        zone.appendChild(span);
+
+    }
+
+}
 /* ================================
    INITIALISATION
 ================================ */
