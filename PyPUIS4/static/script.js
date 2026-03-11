@@ -250,7 +250,19 @@ async function chargerHistorique(){
 
 }
 
+async function changerProfondeur(){
 
+    const profondeur = document.getElementById("profRouge").value;
+
+    await fetch("/api/profondeur", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({profondeur: profondeur})
+    });
+
+    console.log("Nouvelle profondeur :", profondeur);
+
+}
 function fermerHistorique(){
     document.getElementById("modalHistorique").style.display="none";
 }
