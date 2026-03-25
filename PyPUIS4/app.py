@@ -346,7 +346,7 @@ def situation_analyser():
 
     # ✅ Profondeur minimum 6 pour l'analyse de situation
     profondeur = state["profondeur_rouge"] if joueur_analyse == modele.ROUGE else state["profondeur_jaune"]
-    profondeur = max(profondeur, 7)
+    profondeur = max(profondeur, 4)
 
     scores = modele.calculer_scores_minimax(profondeur)
 
