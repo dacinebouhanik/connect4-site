@@ -127,14 +127,14 @@ class Puissance4Modele:
                     plateau[i+2][j] == joueur and plateau[i+3][j] == joueur):
                     return True
 
-        # diagonale /
+        # diagonale \
         for i in range(self.lignes - 3):
             for j in range(self.colonnes - 3):
                 if (plateau[i][j] == joueur and plateau[i+1][j+1] == joueur and
                     plateau[i+2][j+2] == joueur and plateau[i+3][j+3] == joueur):
                     return True
 
-        # diagonale \
+        # diagonale /
         for i in range(3, self.lignes):
             for j in range(self.colonnes - 3):
                 if (plateau[i][j] == joueur and plateau[i-1][j+1] == joueur and
@@ -144,7 +144,7 @@ class Puissance4Modele:
         return False
 
     def verifier_victoire(self, joueur):
-        """Renvoie coordonnes gagnantes (liste) ou None."""
+        """Renvoie coordonnées gagnantes (liste) ou None."""
         if not self._verifier_victoire_sur_plateau(self.plateau, joueur):
             return None
 
@@ -152,22 +152,26 @@ class Puissance4Modele:
         # horizontal
         for i in range(self.lignes):
             for j in range(self.colonnes - 3):
-                if (p[i][j] == joueur and p[i][j+1] == joueur and p[i][j+2] == joueur and p[i][j+3] == joueur):
+                if (p[i][j] == joueur and p[i][j+1] == joueur and
+                        p[i][j+2] == joueur and p[i][j+3] == joueur):
                     return [(i, j), (i, j+1), (i, j+2), (i, j+3)]
         # vertical
         for j in range(self.colonnes):
             for i in range(self.lignes - 3):
-                if (p[i][j] == joueur and p[i+1][j] == joueur and p[i+2][j] == joueur and p[i+3][j] == joueur):
+                if (p[i][j] == joueur and p[i+1][j] == joueur and
+                        p[i+2][j] == joueur and p[i+3][j] == joueur):
                     return [(i, j), (i+1, j), (i+2, j), (i+3, j)]
-        # diag /
+        # diag \
         for i in range(self.lignes - 3):
             for j in range(self.colonnes - 3):
-                if (p[i][j] == joueur and p[i+1][j+1] == joueur and p[i+2][j+2] == joueur and p[i+3][j+3] == joueur):
+                if (p[i][j] == joueur and p[i+1][j+1] == joueur and
+                        p[i+2][j+2] == joueur and p[i+3][j+3] == joueur):
                     return [(i, j), (i+1, j+1), (i+2, j+2), (i+3, j+3)]
-        # diag \
+        # diag /
         for i in range(3, self.lignes):
             for j in range(self.colonnes - 3):
-                if (p[i][j] == joueur and p[i-1][j+1] == joueur and p[i-2][j+2] == joueur and p[i-3][j+3] == joueur):
+                if (p[i][j] == joueur and p[i-1][j+1] == joueur and
+                        p[i-2][j+2] == joueur and p[i-3][j+3] == joueur):
                     return [(i, j), (i-1, j+1), (i-2, j+2), (i-3, j+3)]
 
         return None
@@ -197,7 +201,7 @@ class Puissance4Modele:
     # ---------------- HEURISTIQUE ----------------
 
     def _score_fenetre(self, fenetre, joueur_max):
-        """fenetre = liste de 4 cases. Score simple mais utile."""
+        """fenetre = liste de 4 cases."""
         adv = self.autre_joueur(joueur_max)
 
         c_j = fenetre.count(joueur_max)
@@ -222,33 +226,33 @@ class Puissance4Modele:
         return 0
 
     def evaluer_plateau(self, plateau, joueur_max):
-        """Score global."""
+        """Score heuristique global du plateau."""
         score = 0
 
-        # bonus centre (souvent bon au Puissance 4)
+        # Bonus centre
         centre = self.colonnes // 2
         col_centre = [plateau[i][centre] for i in range(self.lignes)]
         score += col_centre.count(joueur_max) * 20
 
-        # horizontal
+        # Horizontal
         for i in range(self.lignes):
             for j in range(self.colonnes - 3):
                 fen = [plateau[i][j+k] for k in range(4)]
                 score += self._score_fenetre(fen, joueur_max)
 
-        # vertical
+        # Vertical
         for j in range(self.colonnes):
             for i in range(self.lignes - 3):
                 fen = [plateau[i+k][j] for k in range(4)]
                 score += self._score_fenetre(fen, joueur_max)
 
-        # diag /
+        # Diag \
         for i in range(self.lignes - 3):
             for j in range(self.colonnes - 3):
                 fen = [plateau[i+k][j+k] for k in range(4)]
                 score += self._score_fenetre(fen, joueur_max)
 
-        # diag \
+        # Diag /
         for i in range(3, self.lignes):
             for j in range(self.colonnes - 3):
                 fen = [plateau[i-k][j+k] for k in range(4)]
@@ -259,24 +263,23 @@ class Puissance4Modele:
     def mettre_a_jour_parametres(self, lignes, colonnes, couleur_depart):
         if lignes < 4 or colonnes < 4:
             return False
-
         self.lignes = lignes
         self.colonnes = colonnes
         self.couleur_depart = couleur_depart
-
         self.sauver_config()
         self.nouvelle_partie()
-
         return True
 
     # ---------------- MINIMAX + ALPHA-BETA ----------------
-    def minimax_alpha_beta(self, plateau, profondeur, alpha, beta, joueur_max, joueur_courant):
-        """Minimax avec alpha-beta."""
 
+    def minimax_alpha_beta(self, plateau, profondeur, alpha, beta, joueur_max, joueur_courant):
+        """
+        Minimax avec élagage alpha-bêta.
+        CORRECTION : suppression du bloc redondant de victoire dans MIN.
+        """
         adv = self.autre_joueur(joueur_max)
 
-        # -------- ETATS TERMINAUX --------
-
+        # ── États terminaux ──
         if self._verifier_victoire_sur_plateau(plateau, joueur_max):
             return 100000000 - profondeur
 
@@ -286,124 +289,157 @@ class Puissance4Modele:
         if profondeur == 0 or self.plateau_plein(plateau):
             return self.evaluer_plateau(plateau, joueur_max)
 
-        valides = self.colonnes_valides(plateau)
+        valides = self.trier_colonnes(self.colonnes_valides(plateau))
 
-        # tester les colonnes du centre d'abord
-
-
-        # -------- JOUEUR MAX --------
-
+        # ── Joueur MAX ──
         if joueur_courant == joueur_max:
-
             meilleur = -10 ** 18
-
             for col in valides:
-
                 lig = self._jouer_temp(plateau, col, joueur_courant)
                 if lig is None:
                     continue
-
                 score = self.minimax_alpha_beta(
-                    plateau,
-                    profondeur - 1,
-                    alpha,
-                    beta,
-                    joueur_max,
-                    self.autre_joueur(joueur_courant)
+                    plateau, profondeur - 1, alpha, beta,
+                    joueur_max, self.autre_joueur(joueur_courant)
                 )
-
                 plateau[lig][col] = self.VIDE
-
                 meilleur = max(meilleur, score)
                 alpha = max(alpha, score)
-
                 if alpha >= beta:
                     break
-
             return meilleur
 
-        # -------- JOUEUR MIN --------
-
+        # ── Joueur MIN ──
+        # CORRECTION BUG 2 : suppression du bloc "victoire immédiate" redondant
+        # La vérification en tête de fonction gère déjà ce cas au niveau suivant.
         else:
-
             pire = 10 ** 18
-
             for col in valides:
-
                 lig = self._jouer_temp(plateau, col, joueur_courant)
                 if lig is None:
                     continue
-
-                # victoire immédiate
-                if self._verifier_victoire_sur_plateau(plateau, joueur_courant):
-                    plateau[lig][col] = self.VIDE
-                    return -100000000 + profondeur
-
                 score = self.minimax_alpha_beta(
-                    plateau,
-                    profondeur - 1,
-                    alpha,
-                    beta,
-                    joueur_max,
-                    self.autre_joueur(joueur_courant)
+                    plateau, profondeur - 1, alpha, beta,
+                    joueur_max, self.autre_joueur(joueur_courant)
                 )
-
                 plateau[lig][col] = self.VIDE
-
                 pire = min(pire, score)
                 beta = min(beta, score)
-
                 if alpha >= beta:
                     break
             return pire
 
-    def calculer_scores_minimax(self, profondeur):
+    def trier_colonnes(self, colonnes):
+        """Trie du centre vers les bords pour améliorer l'élagage alpha-bêta."""
+        centre = self.colonnes // 2
+        return sorted(colonnes, key=lambda c: abs(c - centre))
 
+    def calculer_scores_minimax(self, profondeur):
         scores = {}
         plateau = [ligne[:] for ligne in self.plateau]
         joueur_max = self.joueur_courant
+        adv = self.autre_joueur(joueur_max)
+        toutes_valides = self.trier_colonnes(self.colonnes_valides(plateau))
 
-        valides = self.colonnes_valides(plateau)
+        # ── ÉTAPE 0 : Victoire immédiate ──
+        for col in toutes_valides:
+            pt = [ligne[:] for ligne in plateau]
+            lig = self._jouer_temp(pt, col, joueur_max)
+            if lig is None:
+                continue
+            if self._verifier_victoire_sur_plateau(pt, joueur_max):
+                return {col: 100_000_000}
 
+        # ── ÉTAPE 1 : Bloquer victoire immédiate adverse ──
+        for col in toutes_valides:
+            pt = [ligne[:] for ligne in plateau]
+            lig = self._jouer_temp(pt, col, adv)
+            if lig is None:
+                continue
+            if self._verifier_victoire_sur_plateau(pt, adv):
+                pt2 = [ligne[:] for ligne in plateau]
+                lig2 = self._jouer_temp(pt2, col, joueur_max)
+                if lig2 is not None:
+                    score = self.minimax_alpha_beta(
+                        pt2, profondeur - 1, -10 ** 18, 10 ** 18,
+                        joueur_max, self.autre_joueur(joueur_max)
+                    )
+                    return {col: score}
 
-
-        for col in valides:
-
-            lig = self._jouer_temp(plateau, col, joueur_max)
-
+        # ── ÉTAPE 2 : Double menace — détection explicite AVANT minimax ──
+        # Raison : le minimax peut rater ce cas si l'heuristique
+        # sous-évalue la position intermédiaire et que l'élagage coupe la branche.
+        for col in toutes_valides:
+            pt = [ligne[:] for ligne in plateau]
+            lig = self._jouer_temp(pt, col, joueur_max)
             if lig is None:
                 continue
 
-            # victoire immédiate
-            if self._verifier_victoire_sur_plateau(plateau, joueur_max):
-                plateau[lig][col] = self.VIDE
-                scores[col] = 100000000
+            if self.est_double_menace_apres_coup(pt, joueur_max):
+                # Score fixe élevé — garantit la sélection de ce coup
+                # Le décalage par distance au centre départage les égalités
+                scores[col] = 50_000_000 - abs(col - self.colonnes // 2)
                 continue
 
+            # ── ÉTAPE 3 : Minimax pur ──
             score = self.minimax_alpha_beta(
-                plateau,
-                profondeur - 1,
-                alpha=-10 ** 18,
-                beta=10 ** 18,
-                joueur_max=joueur_max,
-                joueur_courant=self.autre_joueur(joueur_max)
+                pt, profondeur - 1, -10 ** 18, 10 ** 18,
+                joueur_max, self.autre_joueur(joueur_max)
             )
-
-            plateau[lig][col] = self.VIDE
-
             scores[col] = score
 
         return scores
 
     def minimax(self, plateau, profondeur, joueur_max, joueur_courant):
+        """Wrapper minimax sans alpha-bêta (usage externe)."""
         return self.minimax_alpha_beta(
-            plateau,
-            profondeur,
-            -10 ** 18,
-            10 ** 18,
-            joueur_max,
-            joueur_courant
+            plateau, profondeur, -10 ** 18, 10 ** 18,
+            joueur_max, joueur_courant
         )
+
+    # ---------------- UTILITAIRES IA ----------------
+
+    def est_coup_dangereux(self, plateau, col, joueur):
+        """
+        Retourne True si jouer col permet à l'adversaire de gagner immédiatement.
+        CORRECTION BUG 3 : restauration propre du plateau dans tous les cas.
+        """
+        lig = self._jouer_temp(plateau, col, joueur)
+        if lig is None:
+            return True
+
+        adv = self.autre_joueur(joueur)
+        dangereux = False
+
+        for c in self.colonnes_valides(plateau):
+            l2 = self._jouer_temp(plateau, c, adv)
+            if l2 is None:
+                continue  # colonne pleine — skip sans corrompre le plateau
+            if self._verifier_victoire_sur_plateau(plateau, adv):
+                dangereux = True
+                plateau[l2][c] = self.VIDE
+                break
+            plateau[l2][c] = self.VIDE
+
+        plateau[lig][col] = self.VIDE  # toujours retiré en dernier
+        return dangereux
+
+    def est_coup_jouable(self, plateau, col):
+        return plateau[0][col] == self.VIDE
+
+    def est_double_menace_apres_coup(self, plateau, joueur):
+        """
+        Retourne True si le plateau actuel contient >= 2 coups gagnants immédiats.
+        Doit être appelé sur un plateau où le coup a DÉJÀ été joué.
+        """
+        coups_gagnants = 0
+        for col in self.colonnes_valides(plateau):
+            lig = self._jouer_temp(plateau, col, joueur)
+            if lig is not None:
+                if self._verifier_victoire_sur_plateau(plateau, joueur):
+                    coups_gagnants += 1
+                plateau[lig][col] = self.VIDE
+        return coups_gagnants >= 2
 
     # ---------------- BD UTILS ----------------
 
@@ -411,7 +447,6 @@ class Puissance4Modele:
         return "".join(str(col + 1) for (_, col, _) in self.historique)
 
     def charger_depuis_bd(self, partie_tuple):
-        # tuple renvoyé par get_partie()
         (pid, created_at, lignes, colonnes, couleur_depart, joueur_courant,
          statut, resultat, confiance, coups, coups_sym, coups_can) = partie_tuple
 
@@ -437,4 +472,6 @@ class Puissance4Modele:
                         break
                 joueur = self.JAUNE if joueur == self.ROUGE else self.ROUGE
 
-        self.joueur_courant = joueur_courant if joueur_courant in (self.ROUGE, self.JAUNE) else joueur
+        self.joueur_courant = (
+            joueur_courant if joueur_courant in (self.ROUGE, self.JAUNE) else joueur
+        )

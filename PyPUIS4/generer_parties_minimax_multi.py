@@ -3,7 +3,7 @@ from generer_parties_minimax import jouer_partie_minimax
 from db import inserer_partie
 
 NB_PROCESSUS = 6
-PARTIES_PAR_PROCESSUS = 500
+PARTIES_PAR_PROCESSUS = 100000
 
 
 def worker(nb_parties):

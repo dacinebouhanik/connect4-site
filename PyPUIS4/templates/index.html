@@ -1,228 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-
-<meta charset="utf-8">
-
-<title>HichamDacine - Puissance 4</title>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
+    <meta charset="utf-8">
+    <title>HichamDacine - Puissance 4</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-
-<!-- ================= HEADER ================= -->
-
-<div class="site-header">
-
-<h1 class="title-game">
-Puissance <span>4</span>
-</h1>
-
-<div class="site-signature">
-by HichamDacine
-</div>
-
-</div>
-
-
-
-<!-- ================= CONTROLES ================= -->
-
-<div class="controls">
-
-<button onclick="nouvellePartie()">Nouvelle partie</button>
-
-<button onclick="annulerCoup()">Annuler coup</button>
-
-<button onclick="ouvrirHistorique()">Historique</button>
-
-<select id="modeSelect" onchange="changerMode()">
-
-<option value="2">2 joueurs humains</option>
-
-<option value="1">1 joueur vs IA</option>
-
-<option value="0">IA vs IA</option>
-
-</select>
-
-</div>
-
-
-
-<!-- ================= LAYOUT PRINCIPAL ================= -->
-
-<div class="game-layout">
-
-
-
-<!-- ================= PANNEAU IA ================= -->
-
-<div id="zoneIA" class="ia-panel" style="display:none;">
-
-<h3>Réglages IA</h3>
-
-
-<div class="ia-block">
-
-<strong>Rouge</strong>
-
-<select id="strategieRouge">
-<option value="aleatoire">Aléatoire</option>
-<option value="minimax" selected>Minimax</option>
-</select>
-
-<label>Profondeur</label>
-
-<select id="profRouge">
-<option>1</option>
-<option selected>2</option>
-<option>3</option>
-<option>4</option>
-<option>5</option>
-<option>6</option>
-</select>
-
-</div>
-
-
-
-<div class="ia-block">
-
-<strong>Jaune</strong>
-
-<select id="strategieJaune">
-<option value="aleatoire">Aléatoire</option>
-<option value="minimax" selected>Minimax</option>
-</select>
-
-<label>Profondeur</label>
-
-<select id="profJaune">
-<option>1</option>
-<option selected>2</option>
-<option>3</option>
-<option>4</option>
-<option>5</option>
-<option>6</option>
-</select>
-
-</div>
-
-
-
-<div class="ia-block">
-
-<strong>Délai IA (ms)</strong>
-
-<input
-id="delaiIA"
-type="number"
-value="600"
-min="50"
-step="50"
->
-
-<button onclick="appliquerConfigIA()">Valider</button>
-
-</div>
-
-</div>
-
-
-
-
-<!-- ================= CENTRE JEU ================= -->
-
-<div class="game-center">
-
-<!-- MESSAGE JEU / IA -->
-
-<p id="info">Chargement...</p>
-
-<!-- PLATEAU -->
-
-<div id="plateau"></div>
-
-<!-- SCORES MINIMAX -->
-
-<div id="scores" style="margin-top:10px;"></div>
-
-
-<!-- ================= CONTROLES REPLAY ================= -->
-
-<div id="replayControls" style="display:none; margin-top:20px;">
-
-<button onclick="coupPrecedent()">⬅ Précédent</button>
-
-<button onclick="coupSuivant()">Suivant ➡</button>
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-<!-- ================= MODAL HISTORIQUE ================= -->
-
-<div id="modalHistorique" class="modal">
-
-<div class="modal-content">
-
-<span class="close" onclick="fermerHistorique()">&times;</span>
-
-<h2>Historique des parties</h2>
-
-<table class="table-historique">
-
-<thead>
-
-<tr>
-<th>#</th>
-<th>Date</th>
-<th>Coups</th>
-<th>Résultat</th>
-<th>Statut</th>
-<th>Action</th>
-</tr>
-
-</thead>
-
-<tbody id="listeParties"></tbody>
-
-</table>
-
-</div>
-
-</div>
-
-
-
-<!-- ================= FERMETURE MODAL ================= -->
-
-<script>
-
-window.onclick = function(event) {
-
-const modal = document.getElementById("modalHistorique");
-
-if (event.target === modal) {
-modal.style.display = "none";
-}
-
-}
-
-</script>
-
-
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+    <div class="site-header">
+        <h1 class="title-game">Puissance <span>4</span></h1>
+        <div class="site-signature">by HichamDacine & TensorFlow</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="nouvellePartie()">Nouvelle partie</button>
+        <button onclick="annulerCoup()">Annuler coup</button>
+        <button onclick="ouvrirHistorique()">Historique</button>
+
+        <select id="modeSelect" onchange="changerMode()">
+            <option value="2">2 joueurs humains</option>
+            <option value="1">1 joueur vs IA</option>
+            <option value="0">IA vs IA</option>
+            <option value="3">Mode Situation 🧠</option>
+        </select>
+
+        <select id="departSelect" onchange="changerDepart()">
+            <option value="1">🔴 Rouge commence</option>
+            <option value="2">🟡 Jaune commence</option>
+        </select>
+    </div>
+
+    <div class="game-layout">
+
+        <!-- ── Panneau IA (modes 0 et 1) ── -->
+        <div id="zoneIA" class="ia-panel" style="display:none;">
+            <h3>Réglages IA</h3>
+
+            <div class="ia-block">
+                <strong style="color:#e74c3c;">Joueur Rouge</strong>
+                <label>Stratégie</label>
+                <select id="strategieRouge" onchange="changerStrategie()">
+                    <option value="aleatoire">Aléatoire</option>
+                    <option value="minimax" selected>Minimax</option>
+                </select>
+                <label>Profondeur</label>
+                <!-- ✅ ID correct : profondeurRouge -->
+                <select id="profondeurRouge" onchange="changerProfondeur('rouge')">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4" selected>4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
+
+            <div class="ia-block">
+                <strong style="color:#f1c40f;">Joueur Jaune</strong>
+                <label>Stratégie</label>
+                <select id="strategieJaune" onchange="changerStrategie()">
+                    <option value="aleatoire">Aléatoire</option>
+                    <option value="minimax" selected>Minimax</option>
+                </select>
+                <label>Profondeur</label>
+                <!-- ✅ ID correct : profondeurJaune -->
+                <select id="profondeurJaune" onchange="changerProfondeur('jaune')">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4" selected>4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
+
+            <div class="ia-block">
+                <strong>Timing IA vs IA</strong>
+                <label>Délai (ms)</label>
+                <input id="delaiIA" type="number" value="600" min="50" step="50">
+                <button class="btn-valider" onclick="appliquerDelaiIA()">Appliquer</button>
+            </div>
+        </div>
+
+        <!-- ── Panneau Mode Situation ── -->
+        <div id="zoneSituation" class="ia-panel" style="display:none;">
+            <h3>🧠 Mode Situation</h3>
+
+            <div class="ia-block">
+                <strong>Pion à placer</strong>
+                <div class="pion-buttons">
+                    <button id="btnPionRouge"
+                            class="btn-pion actif"
+                            onclick="changerPionEditeur(1)">
+                        🔴 Rouge
+                    </button>
+                    <button id="btnPionJaune"
+                            class="btn-pion"
+                            onclick="changerPionEditeur(2)">
+                        🟡 Jaune
+                    </button>
+                    <button id="btnPionEffacer"
+                            class="btn-pion btn-effacer"
+                            onclick="changerPionEditeur(0)">
+                        ✕ Effacer
+                    </button>
+                </div>
+                <small style="opacity:0.6; margin-top:4px;">
+                    Cliquez une case occupée pour l'effacer
+                </small>
+            </div>
+
+            <div class="ia-block">
+                <strong>Analyser la position</strong>
+                <label>Joueur qui joue</label>
+                <select id="joueurAnalyse">
+                    <option value="1">🔴 Rouge joue</option>
+                    <option value="2">🟡 Jaune joue</option>
+                </select>
+                <label>Profondeur analyse</label>
+                <!-- ✅ ID différent : profondeurAnalyse (pas profondeurRouge !) -->
+                <select id="profondeurAnalyse" onchange="changerProfondeurAnalyse()">
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6" selected>6</option>
+                    <option value="7">7</option>
+                </select>
+                <button class="btn-valider" onclick="situationAnalyser()">
+                    🔍 Analyser
+                </button>
+            </div>
+
+            <div class="ia-block">
+                <button class="btn-effacer-tout" onclick="situationEffacer()">
+                    🗑️ Effacer le plateau
+                </button>
+            </div>
+
+            <div id="resultатAnalyse"></div>
+        </div>
+
+        <!-- ── Centre : plateau + info ── -->
+        <div class="game-center">
+            <p id="info">Chargement du plateau...</p>
+            <div id="plateau"></div>
+        </div>
+
+    </div>
+
+    <!-- ── Modal Historique ── -->
+    <div id="modalHistorique" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fermerHistorique()">&times;</span>
+            <h2>Historique des parties</h2>
+            <div class="table-wrapper">
+                <table class="table-historique">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Coups</th>
+                            <th>Résultat</th>
+                            <th>Statut</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listeParties"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onclick = function(event) {
+            const modal = document.getElementById("modalHistorique");
+            if (event.target === modal) modal.style.display = "none";
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='game.js') }}"></script>
 
 </body>
 </html>
