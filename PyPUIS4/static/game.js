@@ -2,6 +2,19 @@
    ÉTAT GLOBAL
 ================================================ */
 
+// Identifiant unique par onglet
+if (!sessionStorage.getItem("tabId")) {
+    sessionStorage.setItem("tabId", Math.random().toString(36).substr(2, 9));
+}
+const TAB_ID = sessionStorage.getItem("tabId");
+
+// Helper fetch avec X-Tab-Id
+async function apiFetch(url, options = {}) {
+    options.headers = options.headers || {};
+    options.headers["X-Tab-Id"] = TAB_ID;
+    return fetch(url, options);
+}
+
 let timerIA      = null;
 let delaiIA      = 600;
 let enTrain      = false;
@@ -27,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
 async function chargerPlateau() {
     if (replayActif) return;
 
-    const res  = await fetch("/api/plateau");
+    const res  = await apiFetch("/api/plateau");
     const data = await res.json();
     etatActuel = data;
 
@@ -188,7 +201,7 @@ async function activerSituation() {
     const joueurSelect = document.getElementById("joueurAnalyse");
     const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
-    await fetch("/api/mode", {
+    await apiFetch("/api/mode", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ mode: nouveauMode, joueur_courant: joueur })
@@ -210,7 +223,7 @@ async function situationPlacer(lig, col) {
         couleur = 0;
     }
 
-    const res  = await fetch("/api/situation/placer", {
+    const res  = await apiFetch("/api/situation/placer", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ lig, col, couleur })
@@ -242,7 +255,7 @@ async function changerPionEditeur(pion) {
     etatActuel = { ...etatActuel, pion_editeur: pion };
     mettreAJourBoutonsPion(pion);
 
-    await fetch("/api/situation/pion", {
+    await apiFetch("/api/situation/pion", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ pion })
@@ -265,7 +278,7 @@ function mettreAJourBoutonsPion(pion) {
 ================================================ */
 
 async function situationEffacer() {
-    const res  = await fetch("/api/situation/effacer", { method: "POST" });
+    const res  = await apiFetch("/api/situation/effacer", { method: "POST" });
     const data = await res.json();
 
     etatActuel = { ...etatActuel, plateau: data.plateau };
@@ -292,7 +305,7 @@ async function situationAnalyser() {
     info.innerHTML = "🔍 Analyse en cours...";
     info.className = "info ia-thinking";
 
-    const res  = await fetch("/api/situation/analyser", {
+    const res  = await apiFetch("/api/situation/analyser", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ joueur })
@@ -335,7 +348,7 @@ async function situationAnalyser() {
 ================================================ */
 
 async function afficherConseil() {
-    const res  = await fetch("/api/conseil");
+    const res  = await apiFetch("/api/conseil");
     const data = await res.json();
 
     if (data.status !== "ok") return;
@@ -458,7 +471,7 @@ async function jouer(col) {
     enTrain = true;
     desactiverPlateau();
 
-    const res  = await fetch("/api/jouer", {
+    const res  = await apiFetch("/api/jouer", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ col })
@@ -488,7 +501,7 @@ async function jouer(col) {
 
         await pause(300);
 
-        const resIA  = await fetch("/api/ia_step", { method: "POST" });
+        const resIA  = await apiFetch("/api/ia_step", { method: "POST" });
         const dataIA = await resIA.json();
 
         etatActuel = { ...etatActuel, ...dataIA };
@@ -514,7 +527,7 @@ function demarrerTimerIA() {
         const info = document.getElementById("info");
         if (info) info.innerHTML = "🤖 IA joue...";
 
-        const res  = await fetch("/api/ia_step", { method: "POST" });
+        const res  = await apiFetch("/api/ia_step", { method: "POST" });
         const data = await res.json();
 
         etatActuel = { ...etatActuel, ...data };
@@ -555,7 +568,7 @@ async function changerMode() {
     const joueurSelect = document.getElementById("joueurAnalyse");
     const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
-    await fetch("/api/mode", {
+    await apiFetch("/api/mode", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ mode, joueur_courant: joueur })
@@ -573,7 +586,7 @@ async function changerProfondeur(joueur) {
     const id   = joueur === "rouge" ? "profondeurRouge" : "profondeurJaune";
     const prof = parseInt(document.getElementById(id).value);
 
-    await fetch("/api/profondeur", {
+    await apiFetch("/api/profondeur", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ joueur, profondeur: prof })
@@ -591,7 +604,7 @@ async function changerDepart() {
     stopperTimerIA();
     enTrain = false;
 
-    const res  = await fetch("/api/couleur_depart", {
+    const res  = await apiFetch("/api/couleur_depart", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ couleur })
@@ -615,7 +628,7 @@ async function nouvellePartie() {
     const ctrl = document.getElementById("replayControls");
     if (ctrl) ctrl.remove();
 
-    const res  = await fetch("/api/nouvelle", { method: "POST" });
+    const res  = await apiFetch("/api/nouvelle", { method: "POST" });
     const data = await res.json();
 
     etatActuel = { ...etatActuel, ...data };
@@ -631,7 +644,7 @@ async function annulerCoup() {
     if (enTrain) return;
     stopperTimerIA();
     enTrain = false;
-    await fetch("/api/annuler");
+    await apiFetch("/api/annuler");
     await chargerPlateau();
 }
 
@@ -657,7 +670,7 @@ async function changerStrategie() {
     const rouge = document.getElementById("strategieRouge").value;
     const jaune = document.getElementById("strategieJaune").value;
 
-    await fetch("/api/ia_type", {
+    await apiFetch("/api/ia_type", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ rouge, jaune })
@@ -671,7 +684,7 @@ async function changerStrategie() {
 
 async function ouvrirHistorique() {
     document.getElementById("modalHistorique").style.display = "block";
-    const res  = await fetch("/api/historique");
+    const res  = await apiFetch("/api/historique");
     const data = await res.json();
 
     const liste = document.getElementById("listeParties");
@@ -796,12 +809,12 @@ function activerPlateau() {
 async function changerProfondeurAnalyse() {
     const prof = parseInt(document.getElementById("profondeurAnalyse").value);
 
-    await fetch("/api/profondeur", {
+    await apiFetch("/api/profondeur", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ joueur: "rouge", profondeur: prof })
     });
-    await fetch("/api/profondeur", {
+    await apiFetch("/api/profondeur", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ joueur: "jaune", profondeur: prof })
