@@ -42,7 +42,7 @@ async function chargerPlateau() {
 function mettreAJourUI(data) {
 
     const modeSelect = document.getElementById("modeSelect");
-    if (modeSelect) modeSelect.value = String(data.mode);
+    if (modeSelect) modeSelect.value = data.mode === 3 ? "" : String(data.mode);
 
     // Bouton situation actif ou non
     const btnSituation = document.getElementById("btnSituation");
@@ -170,9 +170,9 @@ async function activerSituation() {
     enTrain = false;
 
     const nouveauMode = (etatActuel && etatActuel.mode === 3) ? 2 : 3;
-    document.getElementById("modeSelect").value = String(nouveauMode);
-    const btnSituation = document.getElementById("btnSituation");
-    if (btnSituation) btnSituation.classList.toggle("actif", nouveauMode === 3);
+
+    document.getElementById("modeSelect").value = nouveauMode === 3 ? "" : String(nouveauMode);
+    document.getElementById("btnSituation").classList.toggle("actif", nouveauMode === 3);
 
     const joueurSelect = document.getElementById("joueurAnalyse");
     const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
@@ -185,6 +185,7 @@ async function activerSituation() {
 
     await chargerPlateau();
 }
+
 
 /* ================================================
    MODE SITUATION — PLACER UN PION
@@ -427,21 +428,19 @@ function stopperTimerIA() {
 ================================================ */
 
 async function changerMode() {
+    const mode = parseInt(document.getElementById("modeSelect").value);
+
     stopperTimerIA();
     enTrain = false;
 
-    const mode = parseInt(document.getElementById("modeSelect").value);
+    // Mettre à jour le bouton situation
     const btnSituation = document.getElementById("btnSituation");
     if (btnSituation) btnSituation.classList.toggle("actif", mode === 3);
-
-    // Récupérer le joueur sélectionné dans le mode situation
-    const joueurSelect = document.getElementById("joueurAnalyse");
-    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
     await fetch("/api/mode", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode, joueur_courant: joueur })
+        body:    JSON.stringify({ mode })
     });
 
     await chargerPlateau();
