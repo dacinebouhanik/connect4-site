@@ -3,6 +3,8 @@ from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
 import os
 import init_db
+import sys
+sys.setrecursionlimit(10000)
 
 init_db.init_db()
 app = Flask(__name__)
