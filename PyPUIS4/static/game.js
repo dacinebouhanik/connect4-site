@@ -44,6 +44,10 @@ function mettreAJourUI(data) {
     const modeSelect = document.getElementById("modeSelect");
     if (modeSelect) modeSelect.value = String(data.mode);
 
+    // Bouton situation actif ou non
+    const btnSituation = document.getElementById("btnSituation");
+    if (btnSituation) btnSituation.classList.toggle("actif", data.mode === 3);
+
     const zoneIA = document.getElementById("zoneIA");
     if (zoneIA) zoneIA.style.display = (data.mode === 0 || data.mode === 1) ? "block" : "none";
 
@@ -58,12 +62,10 @@ function mettreAJourUI(data) {
     const departSelect = document.getElementById("departSelect");
     if (departSelect) departSelect.value = String(data.couleur_depart);
 
-    // Mettre à jour le pion actif dans l'éditeur
     if (data.pion_editeur !== undefined) {
         mettreAJourBoutonsPion(data.pion_editeur);
     }
 
-    // Plateau — mode situation = clic libre sur cases
     if (data.mode === 3) {
         afficherPlateauEditeur(data.plateau);
     } else {
@@ -88,7 +90,6 @@ function mettreAJourUI(data) {
         }
     }
 
-    // Résultat analyse
     const zoneResultat = document.getElementById("resultатAnalyse");
     if (zoneResultat && data.mode !== 3) zoneResultat.innerHTML = "";
 
@@ -109,7 +110,7 @@ function afficherPlateau(plateau, data = null) {
     const plateauDiv = document.getElementById("plateau");
     plateauDiv.innerHTML = "";
 
-    const nbCol    = plateau[0].length;
+    const nbCol = plateau[0].length;
     plateauDiv.style.gridTemplateColumns = `repeat(${nbCol}, 50px)`;
 
     const cliquable = data && data.mode !== 0 && !data.resultat;
@@ -134,7 +135,6 @@ function afficherPlateau(plateau, data = null) {
 
 /* ================================================
    AFFICHER PLATEAU ÉDITEUR (mode situation)
-   Clic sur une case = placer/effacer un pion
 ================================================ */
 
 function afficherPlateauEditeur(plateau) {
@@ -153,7 +153,6 @@ function afficherPlateauEditeur(plateau) {
 
             div.style.cursor = "pointer";
             div.title = `Ligne ${rowIndex}, Colonne ${colIndex}`;
-
             div.onclick = () => situationPlacer(rowIndex, colIndex);
 
             plateauDiv.appendChild(div);
@@ -163,33 +162,38 @@ function afficherPlateauEditeur(plateau) {
 
 
 /* ================================================
-   MODE SITUATION — PLACER UN PION
+   MODE SITUATION — ACTIVER / DÉSACTIVER
 ================================================ */
+
 async function activerSituation() {
     stopperTimerIA();
     enTrain = false;
 
-    // Toggle : si déjà en mode situation → revenir au mode normal
     const nouveauMode = (etatActuel && etatActuel.mode === 3) ? 2 : 3;
 
     document.getElementById("modeSelect").value = String(nouveauMode);
     document.getElementById("btnSituation").classList.toggle("actif", nouveauMode === 3);
 
     await fetch("/api/mode", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: nouveauMode })
+        body:    JSON.stringify({ mode: nouveauMode })
     });
 
     await chargerPlateau();
 }
+
+
+/* ================================================
+   MODE SITUATION — PLACER UN PION
+================================================ */
+
 async function situationPlacer(lig, col) {
-    // Si la case est déjà occupée par le pion actif → effacer
     const plateau = etatActuel ? etatActuel.plateau : null;
     let couleur = etatActuel ? etatActuel.pion_editeur : 1;
 
     if (plateau && plateau[lig][col] === couleur) {
-        couleur = 0; // effacer
+        couleur = 0;
     }
 
     const res  = await fetch("/api/situation/placer", {
@@ -202,7 +206,6 @@ async function situationPlacer(lig, col) {
     etatActuel = { ...etatActuel, plateau: data.plateau };
     afficherPlateauEditeur(data.plateau);
 
-    // Afficher si victoire détectée
     const info = document.getElementById("info");
     if (data.victoire_rouge) {
         info.innerHTML = "🔴 Rouge est déjà en position gagnante sur ce plateau !";
@@ -233,8 +236,8 @@ async function changerPionEditeur(pion) {
 }
 
 function mettreAJourBoutonsPion(pion) {
-    const btnRouge  = document.getElementById("btnPionRouge");
-    const btnJaune  = document.getElementById("btnPionJaune");
+    const btnRouge   = document.getElementById("btnPionRouge");
+    const btnJaune   = document.getElementById("btnPionJaune");
     const btnEffacer = document.getElementById("btnPionEffacer");
 
     if (btnRouge)   btnRouge.classList.toggle("actif", pion === 1);
@@ -284,12 +287,11 @@ async function situationAnalyser() {
 
     info.className = "info";
 
-    // Afficher le résultat
     const zoneResultat = document.getElementById("resultатAnalyse");
     if (zoneResultat) {
         let couleurResultat = "#facc15";
-        if (data.gagnant === "rouge") couleurResultat = "#ef4444";
-        if (data.gagnant === "jaune") couleurResultat = "#facc15";
+        if (data.gagnant === "rouge")     couleurResultat = "#ef4444";
+        if (data.gagnant === "jaune")     couleurResultat = "#facc15";
         if (data.gagnant === "equilibre") couleurResultat = "#60a5fa";
 
         zoneResultat.innerHTML = `
@@ -302,7 +304,6 @@ async function situationAnalyser() {
         `;
     }
 
-    // Mettre en évidence la colonne suggérée
     if (data.meilleur_col !== undefined) {
         surlignerColonne(data.meilleur_col);
     }
@@ -324,7 +325,6 @@ function surlignerColonne(col) {
         }
     });
 
-    // Retirer le surlignage après 3 secondes
     setTimeout(() => {
         document.querySelectorAll(".case.surligne").forEach(c => c.classList.remove("surligne"));
     }, 3000);
@@ -357,7 +357,6 @@ async function jouer(col) {
         return;
     }
 
-    // ✅ Fusionner pour garder le mode
     etatActuel = { ...etatActuel, ...data };
     mettreAJourUI(etatActuel);
 
@@ -366,7 +365,6 @@ async function jouer(col) {
         return;
     }
 
-    // ✅ Utiliser etatActuel.mode (pas data.mode qui est undefined)
     if (etatActuel.mode === 1) {
         const info = document.getElementById("info");
         if (info) {
@@ -431,6 +429,10 @@ async function changerMode() {
 
     stopperTimerIA();
     enTrain = false;
+
+    // Mettre à jour le bouton situation
+    const btnSituation = document.getElementById("btnSituation");
+    if (btnSituation) btnSituation.classList.toggle("actif", mode === 3);
 
     await fetch("/api/mode", {
         method:  "POST",
@@ -673,7 +675,6 @@ function activerPlateau() {
 async function changerProfondeurAnalyse() {
     const prof = parseInt(document.getElementById("profondeurAnalyse").value);
 
-    // Met à jour les deux joueurs pour l'analyse
     await fetch("/api/profondeur", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },

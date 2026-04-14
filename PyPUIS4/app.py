@@ -16,7 +16,7 @@ def etat_defaut():
         "mode":               2,
         "ia_rouge":           "minimax",
         "ia_jaune":           "minimax",
-        "profondeur_rouge":   7,
+        "profondeur_rouge":  4 ,
         "profondeur_jaune":   4,
         "partie_sauvegardee": False,
         "pion_editeur":       1,
@@ -124,7 +124,7 @@ def changer_profondeur():
     state  = get_state()
     data   = request.get_json()
     joueur = data.get("joueur", "rouge")
-    prof   = int(data.get("profondeur", 7))
+    prof   = int(data.get("profondeur", 4))
     if joueur == "rouge":
         state["profondeur_rouge"] = prof
     else:
@@ -390,7 +390,7 @@ def situation_analyser():
                         "message": "🤝 Plateau plein — match nul !"})
 
     profondeur = state["profondeur_rouge"] if joueur_analyse == modele.ROUGE else state["profondeur_jaune"]
-    profondeur = max(profondeur, 7)
+    profondeur = max(profondeur, 4)
 
     scores = modele.calculer_scores_minimax(profondeur)
 
