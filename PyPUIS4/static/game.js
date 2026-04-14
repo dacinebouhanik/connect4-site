@@ -91,7 +91,11 @@ function mettreAJourUI(data) {
     }
 
     const zoneResultat = document.getElementById("resultатAnalyse");
-    if (zoneResultat && data.mode !== 3) zoneResultat.innerHTML = "";
+    const zoneContainer = document.getElementById("zoneAnalyseResultat");
+    if (zoneResultat && data.mode !== 3) {
+        zoneResultat.innerHTML = "";
+        if (zoneContainer) zoneContainer.style.display = "none";
+    }
 
     if (data.mode === 0 && !data.resultat) {
         demarrerTimerIA();
@@ -288,9 +292,12 @@ async function situationAnalyser() {
     });
     const data = await res.json();
 
+    // Remettre le message normal dans #info
+    info.innerHTML = "🧠 Mode Situation — placez vos pions librement";
     info.className = "info";
 
     const zoneResultat = document.getElementById("resultатAnalyse");
+    const zoneContainer = document.getElementById("zoneAnalyseResultat");
     if (zoneResultat) {
         let couleurResultat = "#facc15";
         if (data.gagnant === "rouge")     couleurResultat = "#ef4444";
@@ -299,12 +306,13 @@ async function situationAnalyser() {
 
         zoneResultat.innerHTML = `
             <div class="analyse-result" style="border-color: ${couleurResultat}">
-                <p>${data.message}</p>
+                <p style="font-size:18px; font-weight:bold;">${data.message}</p>
                 ${data.meilleur_col !== undefined
-                    ? `<p class="meilleur-coup">Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong></p>`
+                    ? `<p class="meilleur-coup">🎯 Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong></p>`
                     : ""}
             </div>
         `;
+        if (zoneContainer) zoneContainer.style.display = "block";
     }
 
     if (data.meilleur_col !== undefined) {
