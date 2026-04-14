@@ -15,13 +15,19 @@ def get_conn():
     if not database_url:
         raise Exception("DATABASE_URL non définie dans les variables d'environnement")
 
+    # Ajoute sslmode=require si pas déjà présent
+    if "sslmode" not in database_url:
+        if "?" in database_url:
+            database_url += "&sslmode=require"
+        else:
+            database_url += "?sslmode=require"
+
     try:
         conn = psycopg2.connect(database_url)
         return conn
     except Exception as e:
         print("ERREUR CONNEXION POSTGRES :", e)
         raise
-
 
 # =========================================================
 # TEST
