@@ -22,8 +22,9 @@
             <option value="2">2 joueurs humains</option>
             <option value="1">1 joueur vs IA</option>
             <option value="0">IA vs IA</option>
-            <option value="3">Mode Situation 🧠</option>
         </select>
+
+        <button id="btnSituation" onclick="activerSituation()">🧠 Mode Situation</button>
 
         <select id="departSelect" onchange="changerDepart()">
             <option value="1">🔴 Rouge commence</option>
@@ -45,7 +46,6 @@
                     <option value="minimax" selected>Minimax</option>
                 </select>
                 <label>Profondeur</label>
-                <!-- ✅ ID correct : profondeurRouge -->
                 <select id="profondeurRouge" onchange="changerProfondeur('rouge')">
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -64,7 +64,6 @@
                     <option value="minimax" selected>Minimax</option>
                 </select>
                 <label>Profondeur</label>
-                <!-- ✅ ID correct : profondeurJaune -->
                 <select id="profondeurJaune" onchange="changerProfondeur('jaune')">
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -119,7 +118,6 @@
                     <option value="2">🟡 Jaune joue</option>
                 </select>
                 <label>Profondeur analyse</label>
-                <!-- ✅ ID différent : profondeurAnalyse (pas profondeurRouge !) -->
                 <select id="profondeurAnalyse" onchange="changerProfondeurAnalyse()">
                     <option value="4">4</option>
                     <option value="5">5</option>

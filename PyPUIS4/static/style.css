@@ -76,9 +76,34 @@ select {
     cursor: pointer;
 }
 
-/* ✅ Badge "Rouge commence / Jaune commence" dans controls */
 #departSelect option[value="1"] { color: #ef4444; }
 #departSelect option[value="2"] { color: #facc15; }
+
+
+/* ================= BOUTON MODE SITUATION ================= */
+
+#btnSituation {
+    background: linear-gradient(145deg, #7c3aed, #6d28d9);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.6);
+    animation: pulseViolet 2s infinite;
+}
+
+#btnSituation:hover {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.9);
+    transform: scale(1.05);
+}
+
+#btnSituation.actif {
+    background: linear-gradient(145deg, #6d28d9, #4c1d95);
+    border: 2px solid #a78bfa;
+    animation: none;
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.8);
+}
+
+@keyframes pulseViolet {
+    0%, 100% { box-shadow: 0 0 12px rgba(124, 58, 237, 0.6); }
+    50%       { box-shadow: 0 0 22px rgba(124, 58, 237, 1);   }
+}
 
 
 /* ================= LAYOUT ================= */

@@ -165,7 +165,24 @@ function afficherPlateauEditeur(plateau) {
 /* ================================================
    MODE SITUATION — PLACER UN PION
 ================================================ */
+async function activerSituation() {
+    stopperTimerIA();
+    enTrain = false;
 
+    // Toggle : si déjà en mode situation → revenir au mode normal
+    const nouveauMode = (etatActuel && etatActuel.mode === 3) ? 2 : 3;
+
+    document.getElementById("modeSelect").value = String(nouveauMode);
+    document.getElementById("btnSituation").classList.toggle("actif", nouveauMode === 3);
+
+    await fetch("/api/mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: nouveauMode })
+    });
+
+    await chargerPlateau();
+}
 async function situationPlacer(lig, col) {
     // Si la case est déjà occupée par le pion actif → effacer
     const plateau = etatActuel ? etatActuel.plateau : null;
