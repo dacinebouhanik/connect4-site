@@ -340,50 +340,63 @@ async function afficherConseil() {
 
     if (data.status !== "ok") return;
 
-    const zoneConseil = document.getElementById("zoneConseil");
-    if (!zoneConseil) return;
+    // Afficher la flèche au-dessus de la colonne conseillée
+    afficherFleche(data.meilleur_col, data.verdict, data.score);
+}
 
-    const emoji = data.joueur === 1 ? "🔴" : "🟡";
+function afficherFleche(col, verdict, score) {
+    // Supprimer l'ancienne flèche
+    cacherConseil();
+
+    const plateauDiv = document.getElementById("plateau");
+    if (!plateauDiv) return;
+
+    const nbCol = etatActuel ? etatActuel.plateau[0].length : 9;
+
+    // Calculer la position de la colonne
+    const cases = plateauDiv.querySelectorAll(".case");
+    if (cases.length === 0) return;
+
+    // Trouver la case de la première ligne de la colonne conseillée
+    const caseTarget = cases[col];
+    if (!caseTarget) return;
 
     let couleur = "#60a5fa";
-    let texteVerdict = "Position équilibrée";
-    if (data.verdict === "victoire") { couleur = "#22c55e"; texteVerdict = "🏆 Tu peux gagner !"; }
-    else if (data.verdict === "defaite") { couleur = "#ef4444"; texteVerdict = "⚠️ Position difficile"; }
-    else if (data.verdict === "avantage") { couleur = "#86efac"; texteVerdict = "✅ Tu as l'avantage"; }
-    else if (data.verdict === "desavantage") { couleur = "#fca5a5"; texteVerdict = "📉 Adversaire favori"; }
+    let texteVerdict = "Équilibre";
+    if (verdict === "victoire")     { couleur = "#22c55e"; texteVerdict = "Gagne !"; }
+    else if (verdict === "defaite") { couleur = "#ef4444"; texteVerdict = "Danger"; }
+    else if (verdict === "avantage"){ couleur = "#86efac"; texteVerdict = "Avantage"; }
+    else if (verdict === "desavantage") { couleur = "#fca5a5"; texteVerdict = "Risqué"; }
 
-    zoneConseil.style.display = "block";
-    zoneConseil.innerHTML = `
-        <div style="
-            background: rgba(255,255,255,0.05);
-            border: 2px solid ${couleur};
-            border-radius: 14px;
-            padding: 14px 20px;
-            text-align: center;
-            margin-top: 12px;
-            animation: fadeIn 0.3s ease;
-        ">
-            <div style="font-size:13px; opacity:0.7; margin-bottom:4px;">💡 Conseil IA</div>
-            <div style="font-size:18px; font-weight:bold; color:${couleur};">${texteVerdict}</div>
-            <div style="font-size:16px; margin-top:6px;">
-                Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong>
-            </div>
-            <div style="font-size:12px; opacity:0.6; margin-top:4px;">score : ${data.score}</div>
+    // Créer la flèche
+    const fleche = document.createElement("div");
+    fleche.id = "conseilFleche";
+    fleche.innerHTML = `
+        <div style="text-align:center; line-height:1.2;">
+            <div style="font-size:11px; color:${couleur}; font-weight:bold;">${texteVerdict}</div>
+            <div style="font-size:28px; color:${couleur}; animation: bounceDown 0.8s infinite;">▼</div>
         </div>
     `;
 
-    // Surligner la colonne conseillée
-    surlignerColonne(data.meilleur_col);
+    // Positionner la flèche au-dessus de la bonne case
+    const rect = caseTarget.getBoundingClientRect();
+    const plateauRect = plateauDiv.getBoundingClientRect();
+
+    fleche.style.position = "absolute";
+    fleche.style.left = (rect.left - plateauRect.left + rect.width/2 - 20) + "px";
+    fleche.style.top = "-55px";
+    fleche.style.width = "40px";
+    fleche.style.zIndex = "100";
+    fleche.style.pointerEvents = "none";
+
+    // Mettre le plateau en position relative
+    plateauDiv.style.position = "relative";
+    plateauDiv.appendChild(fleche);
 }
 
 function cacherConseil() {
-    const zoneConseil = document.getElementById("zoneConseil");
-    if (zoneConseil) {
-        zoneConseil.style.display = "none";
-        zoneConseil.innerHTML = "";
-    }
-    // Retirer surlignage
-    document.querySelectorAll(".case.surligne").forEach(c => c.classList.remove("surligne"));
+    const fleche = document.getElementById("conseilFleche");
+    if (fleche) fleche.remove();
 }
 
 /* ================================================
