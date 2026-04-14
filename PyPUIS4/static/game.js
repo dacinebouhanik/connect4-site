@@ -105,7 +105,7 @@ function mettreAJourUI(data) {
     }
 
     // Afficher conseil si mode HvIA et c'est le tour de l'humain
-    if (data.mode === 1 && !data.resultat) {
+    if (data.mode === 1 && !data.resultat&&data.joueur!==2) {
         afficherConseil();
     } else if (data.mode !== 1) {
         cacherConseil();
