@@ -105,9 +105,11 @@ function mettreAJourUI(data) {
     }
 
     // Afficher conseil si mode HvIA et c'est le tour de l'humain
-    const btnPred = document.getElementById("btnPrediction");
-    if (btnPred) btnPred.style.display = (data.mode === 1 && !data.resultat && data.joueur !== 2) ? "inline-block" : "none";
-    cacherConseil();
+    if (data.mode === 1 && !data.resultat) {
+        afficherConseil();
+    } else if (data.mode !== 1) {
+        cacherConseil();
+    }
 }
 
 
@@ -338,61 +340,86 @@ async function afficherConseil() {
 
     if (data.status !== "ok") return;
 
-    // Afficher la flèche au-dessus de la colonne conseillée
-    afficherFleche(data.meilleur_col, data.verdict, data.score);
+    afficherScoresColonnes(data.scores, data.meilleur_col);
 }
 
-function afficherFleche(col, verdict, score) {
-    // Supprimer l'ancienne flèche
+function afficherScoresColonnes(scores, meilleurCol) {
     cacherConseil();
 
     const plateauDiv = document.getElementById("plateau");
     if (!plateauDiv) return;
 
     const nbCol = etatActuel ? etatActuel.plateau[0].length : 9;
-
-    // Calculer la position de la colonne
     const cases = plateauDiv.querySelectorAll(".case");
     if (cases.length === 0) return;
 
-    // Trouver la case de la première ligne de la colonne conseillée
-    const caseTarget = cases[col];
-    if (!caseTarget) return;
-
-    let couleur = "#60a5fa";
-    let texteVerdict = "Équilibre";
-    if (verdict === "victoire")     { couleur = "#22c55e"; texteVerdict = "Gagne !"; }
-    else if (verdict === "defaite") { couleur = "#ef4444"; texteVerdict = "Danger"; }
-    else if (verdict === "avantage"){ couleur = "#86efac"; texteVerdict = "Avantage"; }
-    else if (verdict === "desavantage") { couleur = "#fca5a5"; texteVerdict = "Risqué"; }
-
-    // Créer la flèche
-    const fleche = document.createElement("div");
-    fleche.id = "conseilFleche";
-    fleche.innerHTML = `
-        <div style="text-align:center; line-height:1.2;">
-            <div style="font-size:11px; color:${couleur}; font-weight:bold;">${texteVerdict}</div>
-            <div style="font-size:28px; color:${couleur}; animation: bounceDown 0.8s infinite;">▼</div>
-        </div>
-    `;
-
-    // Positionner la flèche au-dessus de la bonne case
-    const rect = caseTarget.getBoundingClientRect();
-    const plateauRect = plateauDiv.getBoundingClientRect();
-
-    fleche.style.position = "absolute";
-    fleche.style.left = (rect.left - plateauRect.left + rect.width/2 - 20) + "px";
-    fleche.style.top = "-55px";
-    fleche.style.width = "40px";
-    fleche.style.zIndex = "100";
-    fleche.style.pointerEvents = "none";
-
-    // Mettre le plateau en position relative
     plateauDiv.style.position = "relative";
-    plateauDiv.appendChild(fleche);
+
+    // Trouver min et max pour normaliser les couleurs
+    const vals = Object.values(scores);
+    const maxVal = Math.max(...vals);
+    const minVal = Math.min(...vals);
+
+    for (let col = 0; col < nbCol; col++) {
+        const caseTarget = cases[col];
+        if (!caseTarget) continue;
+
+        const rect = caseTarget.getBoundingClientRect();
+        const plateauRect = plateauDiv.getBoundingClientRect();
+
+        const scoreCol = scores[col];
+        const isMeilleur = col === meilleurCol;
+
+        // Couleur selon le score
+        let couleur = "#60a5fa"; // bleu = neutre
+        if (scoreCol === undefined) {
+            couleur = "#475569"; // gris = colonne pleine
+        } else if (scoreCol >= 99000000) {
+            couleur = "#22c55e"; // vert = victoire
+        } else if (scoreCol <= -99000000) {
+            couleur = "#ef4444"; // rouge = défaite
+        } else if (scoreCol > 500) {
+            couleur = "#86efac"; // vert clair = avantage
+        } else if (scoreCol < -500) {
+            couleur = "#fca5a5"; // rouge clair = désavantage
+        }
+
+        // Formater le score
+        let texteScore = scoreCol === undefined ? "X" :
+            scoreCol >= 99000000 ? "WIN" :
+            scoreCol <= -99000000 ? "LOSE" :
+            (scoreCol > 0 ? "+" : "") + scoreCol;
+
+        const div = document.createElement("div");
+        div.className = "conseil-score-col";
+        div.id = `conseilScore_${col}`;
+
+        div.innerHTML = `
+            <div style="
+                text-align: center;
+                color: ${couleur};
+                font-size: ${isMeilleur ? "13px" : "11px"};
+                font-weight: ${isMeilleur ? "bold" : "normal"};
+                opacity: ${isMeilleur ? "1" : "0.75"};
+            ">
+                ${isMeilleur ? `<div style="font-size:22px; animation: bounceDown 0.8s infinite;">▼</div>` : ""}
+                <div>${texteScore}</div>
+            </div>
+        `;
+
+        div.style.position = "absolute";
+        div.style.left = (rect.left - plateauRect.left + rect.width/2 - 20) + "px";
+        div.style.top = isMeilleur ? "-65px" : "-30px";
+        div.style.width = "40px";
+        div.style.zIndex = "100";
+        div.style.pointerEvents = "none";
+
+        plateauDiv.appendChild(div);
+    }
 }
 
 function cacherConseil() {
+    document.querySelectorAll(".conseil-score-col").forEach(e => e.remove());
     const fleche = document.getElementById("conseilFleche");
     if (fleche) fleche.remove();
 }
