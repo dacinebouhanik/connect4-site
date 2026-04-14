@@ -436,15 +436,19 @@ function stopperTimerIA() {
 ================================================ */
 
 async function changerMode() {
-    const mode = parseInt(document.getElementById("modeSelect").value);
+    const modeStr = document.getElementById("modeSelect").value;
+    const mode = parseInt(modeStr);
+
+    // Si le select est vide → ignorer
+    if (isNaN(mode)) return;
 
     stopperTimerIA();
     enTrain = false;
 
     const btnSituation = document.getElementById("btnSituation");
-    if (btnSituation) btnSituation.classList.toggle("actif", mode === 3);
+    if (btnSituation) btnSituation.classList.toggle("actif", false);
 
-    // ✅ Envoyer le joueur sélectionné dans mode situation
+    // Récupérer le joueur sélectionné dans mode situation
     const joueurSelect = document.getElementById("joueurAnalyse");
     const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
