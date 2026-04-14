@@ -108,13 +108,24 @@ def get_plateau():
 # =========================================================
 
 @app.route("/api/mode", methods=["POST"])
+@app.route("/api/mode", methods=["POST"])
 def changer_mode():
     state = get_state()
     data  = request.get_json()
-    state["mode"] = int(data["mode"])
+    ancien_mode  = state["mode"]
+    nouveau_mode = int(data["mode"])
+    state["mode"] = nouveau_mode
+
+    # Si on quitte le mode situation → garder le plateau + respecter joueur choisi
+    if ancien_mode == 3 and nouveau_mode != 3:
+        joueur = int(data.get("joueur_courant", state.get("joueur_courant", 1)))
+        state["joueur_courant"] = joueur
+        state["resultat"] = None
+        state["historique"] = []
+        state["partie_sauvegardee"] = False
+
     sauver_state(state)
     return jsonify({"status": "ok", "mode": state["mode"]})
-
 # =========================================================
 # CHANGER PROFONDEUR
 # =========================================================

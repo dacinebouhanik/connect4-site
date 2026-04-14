@@ -170,19 +170,21 @@ async function activerSituation() {
     enTrain = false;
 
     const nouveauMode = (etatActuel && etatActuel.mode === 3) ? 2 : 3;
-
     document.getElementById("modeSelect").value = String(nouveauMode);
-    document.getElementById("btnSituation").classList.toggle("actif", nouveauMode === 3);
+    const btnSituation = document.getElementById("btnSituation");
+    if (btnSituation) btnSituation.classList.toggle("actif", nouveauMode === 3);
+
+    const joueurSelect = document.getElementById("joueurAnalyse");
+    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
     await fetch("/api/mode", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode: nouveauMode })
+        body:    JSON.stringify({ mode: nouveauMode, joueur_courant: joueur })
     });
 
     await chargerPlateau();
 }
-
 
 /* ================================================
    MODE SITUATION — PLACER UN PION
@@ -425,19 +427,21 @@ function stopperTimerIA() {
 ================================================ */
 
 async function changerMode() {
-    const mode = parseInt(document.getElementById("modeSelect").value);
-
     stopperTimerIA();
     enTrain = false;
 
-    // Mettre à jour le bouton situation
+    const mode = parseInt(document.getElementById("modeSelect").value);
     const btnSituation = document.getElementById("btnSituation");
     if (btnSituation) btnSituation.classList.toggle("actif", mode === 3);
+
+    // Récupérer le joueur sélectionné dans le mode situation
+    const joueurSelect = document.getElementById("joueurAnalyse");
+    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
     await fetch("/api/mode", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode })
+        body:    JSON.stringify({ mode, joueur_courant: joueur })
     });
 
     await chargerPlateau();
