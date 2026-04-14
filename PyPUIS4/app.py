@@ -13,7 +13,7 @@ def etat_defaut():
         "mode":               2,
         "ia_rouge":           "minimax",
         "ia_jaune":           "minimax",
-        "profondeur_rouge":   7,
+        "profondeur_rouge":   4,
         "profondeur_jaune":   4,
         "partie_sauvegardee": False,
         "pion_editeur":       1,
