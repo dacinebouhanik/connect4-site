@@ -1,143 +1,167 @@
 /* ================================================
-   ÉTAT GLOBAL
+   ÉTAT GLOBAL — tout est ici, zéro serveur
 ================================================ */
 
-// Identifiant unique par onglet
-if (!sessionStorage.getItem("tabId")) {
-    sessionStorage.setItem("tabId", Math.random().toString(36).substr(2, 9));
-}
-const TAB_ID = sessionStorage.getItem("tabId");
+const ETAT = {
+    plateau:        null,
+    joueur_courant: 1,
+    couleur_depart: 1,
+    historique:     [],
+    resultat:       null,
+    lignes:         9,
+    colonnes:       9,
 
-// Helper fetch avec X-Tab-Id
-async function apiFetch(url, options = {}) {
-    options.headers = options.headers || {};
-    options.headers["X-Tab-Id"] = TAB_ID;
-    return fetch(url, options);
-}
+    mode:           2,   // 0=IAvIA, 1=HvIA, 2=HvH, 3=Situation
+    ia_rouge:       "minimax",
+    ia_jaune:       "minimax",
+    profondeur_rouge: 4,
+    profondeur_jaune: 4,
+    pion_editeur:   1,
 
-let timerIA      = null;
-let delaiIA      = 600;
-let enTrain      = false;
-let replayActif  = false;
-let replayCoups  = [];
-let replayIndex  = 0;
-let etatActuel   = null;
+    partie_sauvegardee: false,
+    timer_ia:       null,
+    delai_ia:       600,
+    en_train:       false,
 
+    // Replay
+    replay_actif:   false,
+    replay_coups:   [],
+    replay_index:   0,
+};
 
 /* ================================================
    INITIALISATION
 ================================================ */
 
-document.addEventListener("DOMContentLoaded", () => {
-    chargerPlateau();
+document.addEventListener("DOMContentLoaded", async () => {
+    await nouvellePartie();
 });
 
-
 /* ================================================
-   CHARGER PLATEAU
+   NOUVELLE PARTIE
 ================================================ */
 
-async function chargerPlateau() {
-    if (replayActif) return;
+async function nouvellePartie() {
+    stopperTimerIA();
+    ETAT.en_train = false;
+    ETAT.replay_actif = false;
 
-    const res  = await apiFetch("/api/plateau");
+    const ctrl = document.getElementById("replayControls");
+    if (ctrl) ctrl.remove();
+
+    const res  = await fetch("/api/nouvelle", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+            lignes:         ETAT.lignes,
+            colonnes:       ETAT.colonnes,
+            couleur_depart: ETAT.couleur_depart,
+        })
+    });
     const data = await res.json();
-    etatActuel = data;
 
-    mettreAJourUI(data);
+    ETAT.plateau        = data.plateau;
+    ETAT.joueur_courant = data.joueur_courant;
+    ETAT.historique     = data.historique;
+    ETAT.resultat       = null;
+    ETAT.partie_sauvegardee = false;
+
+    cacherConseil();
+    mettreAJourUI();
 }
 
-
 /* ================================================
-   METTRE À JOUR TOUTE L'UI
+   METTRE À JOUR L'UI
 ================================================ */
 
-function mettreAJourUI(data) {
-
+function mettreAJourUI() {
+    // Mode select
     const modeSelect = document.getElementById("modeSelect");
-    if (modeSelect) modeSelect.value = data.mode === 3 ? "" : String(data.mode);
+    if (modeSelect) modeSelect.value = ETAT.mode === 3 ? "" : String(ETAT.mode);
 
-    // Bouton situation actif ou non
+    // Bouton situation
     const btnSituation = document.getElementById("btnSituation");
-    if (btnSituation) btnSituation.classList.toggle("actif", data.mode === 3);
+    if (btnSituation) btnSituation.classList.toggle("actif", ETAT.mode === 3);
 
+    // Panneaux
     const zoneIA = document.getElementById("zoneIA");
-    if (zoneIA) zoneIA.style.display = (data.mode === 0 || data.mode === 1) ? "block" : "none";
+    if (zoneIA) zoneIA.style.display = (ETAT.mode === 0 || ETAT.mode === 1) ? "block" : "none";
 
     const zoneSituation = document.getElementById("zoneSituation");
-    if (zoneSituation) zoneSituation.style.display = data.mode === 3 ? "block" : "none";
+    if (zoneSituation) zoneSituation.style.display = ETAT.mode === 3 ? "block" : "none";
 
+    // Profondeurs
     const profRouge = document.getElementById("profondeurRouge");
     const profJaune = document.getElementById("profondeurJaune");
-    if (profRouge) profRouge.value = String(data.profondeur_rouge);
-    if (profJaune) profJaune.value = String(data.profondeur_jaune);
+    if (profRouge) profRouge.value = String(ETAT.profondeur_rouge);
+    if (profJaune) profJaune.value = String(ETAT.profondeur_jaune);
 
+    // Départ
     const departSelect = document.getElementById("departSelect");
-    if (departSelect) departSelect.value = String(data.couleur_depart);
+    if (departSelect) departSelect.value = String(ETAT.couleur_depart);
 
-    if (data.pion_editeur !== undefined) {
-        mettreAJourBoutonsPion(data.pion_editeur);
-    }
+    // Pion éditeur
+    mettreAJourBoutonsPion(ETAT.pion_editeur);
 
-    if (data.mode === 3) {
-        afficherPlateauEditeur(data.plateau);
+    // Plateau
+    if (ETAT.mode === 3) {
+        afficherPlateauEditeur(ETAT.plateau);
     } else {
-        afficherPlateau(data.plateau, data);
+        afficherPlateau(ETAT.plateau);
     }
 
+    // Info
     const info = document.getElementById("info");
     if (info) {
-        if (data.resultat) {
-            const emoji = data.resultat === "rouge" ? "🔴" : data.resultat === "jaune" ? "🟡" : "🤝";
-            const texte = data.resultat === "nul" ? "Match nul !" : `${emoji} ${data.resultat.toUpperCase()} gagne !`;
+        if (ETAT.resultat) {
+            const emoji = ETAT.resultat === "rouge" ? "🔴" : ETAT.resultat === "jaune" ? "🟡" : "🤝";
+            const texte = ETAT.resultat === "nul" ? "Match nul !" : `${emoji} ${ETAT.resultat.toUpperCase()} gagne !`;
             info.innerHTML = "🏆 " + texte;
             info.className = "info fin";
-        } else if (data.mode === 3) {
+        } else if (ETAT.mode === 3) {
             info.innerHTML = "🧠 Mode Situation — placez vos pions librement";
             info.className = "info";
         } else {
-            const emoji = data.joueur === 1 ? "🔴" : "🟡";
-            const nom   = data.joueur === 1 ? "Rouge" : "Jaune";
+            const emoji = ETAT.joueur_courant === 1 ? "🔴" : "🟡";
+            const nom   = ETAT.joueur_courant === 1 ? "Rouge" : "Jaune";
             info.innerHTML = `${emoji} Tour de ${nom}`;
             info.className = "info";
         }
     }
 
-    const zoneResultat = document.getElementById("resultатAnalyse");
-    const zoneContainer = document.getElementById("zoneAnalyseResultat");
-    if (zoneResultat && data.mode !== 3) {
-        zoneResultat.innerHTML = "";
-        if (zoneContainer) zoneContainer.style.display = "none";
+    // Bouton prédiction
+    const btnPred = document.getElementById("btnPrediction");
+    if (btnPred) {
+        btnPred.style.display = (ETAT.mode === 1 && !ETAT.resultat && ETAT.joueur_courant === 1) ? "inline-block" : "none";
     }
 
-    if (data.mode === 0 && !data.resultat) {
+    // Timer IA vs IA
+    if (ETAT.mode === 0 && !ETAT.resultat) {
         demarrerTimerIA();
     } else {
         stopperTimerIA();
-        enTrain = false;
+        ETAT.en_train = false;
     }
 
-    // Afficher conseil si mode HvIA et c'est le tour de l'humain
-    if (data.mode === 1 && !data.resultat) {
-        afficherConseil();
-    } else if (data.mode !== 1) {
-        cacherConseil();
+    // Sauvegarder si partie finie
+    if (ETAT.resultat && !ETAT.partie_sauvegardee) {
+        sauvegarderPartie();
     }
 }
-
 
 /* ================================================
    AFFICHER PLATEAU NORMAL
 ================================================ */
 
-function afficherPlateau(plateau, data = null) {
+function afficherPlateau(plateau) {
+    if (!plateau) return;
     const plateauDiv = document.getElementById("plateau");
     plateauDiv.innerHTML = "";
 
     const nbCol = plateau[0].length;
     plateauDiv.style.gridTemplateColumns = `repeat(${nbCol}, 50px)`;
 
-    const cliquable = data && data.mode !== 0 && !data.resultat;
+    const cliquable = ETAT.mode !== 0 && !ETAT.resultat && ETAT.mode !== 3;
 
     plateau.forEach((ligne, rowIndex) => {
         ligne.forEach((cell, colIndex) => {
@@ -150,18 +174,17 @@ function afficherPlateau(plateau, data = null) {
                 div.onclick = () => jouer(colIndex);
                 div.style.cursor = "pointer";
             }
-
             plateauDiv.appendChild(div);
         });
     });
 }
 
-
 /* ================================================
-   AFFICHER PLATEAU ÉDITEUR (mode situation)
+   AFFICHER PLATEAU ÉDITEUR
 ================================================ */
 
 function afficherPlateauEditeur(plateau) {
+    if (!plateau) return;
     const plateauDiv = document.getElementById("plateau");
     plateauDiv.innerHTML = "";
 
@@ -174,71 +197,223 @@ function afficherPlateauEditeur(plateau) {
             div.className = "case editeur";
             if (cell === 1) div.classList.add("rouge");
             if (cell === 2) div.classList.add("jaune");
-
             div.style.cursor = "pointer";
-            div.title = `Ligne ${rowIndex}, Colonne ${colIndex}`;
             div.onclick = () => situationPlacer(rowIndex, colIndex);
-
             plateauDiv.appendChild(div);
         });
     });
 }
 
-
 /* ================================================
-   MODE SITUATION — ACTIVER / DÉSACTIVER
+   JOUER COUP HUMAIN
 ================================================ */
 
-async function activerSituation() {
-    stopperTimerIA();
-    enTrain = false;
+async function jouer(col) {
+    if (ETAT.en_train || ETAT.resultat || ETAT.mode === 0 || ETAT.mode === 3) return;
 
-    const nouveauMode = (etatActuel && etatActuel.mode === 3) ? 2 : 3;
+    ETAT.en_train = true;
+    desactiverPlateau();
+    cacherConseil();
 
-    document.getElementById("modeSelect").value = nouveauMode === 3 ? "" : String(nouveauMode);
-    document.getElementById("btnSituation").classList.toggle("actif", nouveauMode === 3);
-
-    const joueurSelect = document.getElementById("joueurAnalyse");
-    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
-
-    await apiFetch("/api/mode", {
+    const res  = await fetch("/api/jouer", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode: nouveauMode, joueur_courant: joueur })
-    });
-
-    await chargerPlateau();
-}
-
-
-/* ================================================
-   MODE SITUATION — PLACER UN PION
-================================================ */
-
-async function situationPlacer(lig, col) {
-    const plateau = etatActuel ? etatActuel.plateau : null;
-    let couleur = etatActuel ? etatActuel.pion_editeur : 1;
-
-    if (plateau && plateau[lig][col] === couleur) {
-        couleur = 0;
-    }
-
-    const res  = await apiFetch("/api/situation/placer", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ lig, col, couleur })
+        body:    JSON.stringify({ ...getEtatServeur(), col })
     });
     const data = await res.json();
 
-    etatActuel = { ...etatActuel, plateau: data.plateau };
-    afficherPlateauEditeur(data.plateau);
+    if (data.status === "col_invalide" || data.status === "fin") {
+        ETAT.en_train = false;
+        activerPlateau();
+        return;
+    }
+
+    ETAT.plateau        = data.plateau;
+    ETAT.joueur_courant = data.joueur_courant;
+    ETAT.historique     = data.historique;
+    ETAT.resultat       = data.resultat;
+
+    mettreAJourUI();
+
+    if (!ETAT.resultat && ETAT.mode === 1) {
+        const info = document.getElementById("info");
+        if (info) { info.innerHTML = "🧠 IA réfléchit..."; info.className = "info ia-thinking"; }
+
+        await pause(300);
+        await jouerIA();
+    }
+
+    ETAT.en_train = false;
+    activerPlateau();
+}
+
+/* ================================================
+   COUP IA
+================================================ */
+
+async function jouerIA() {
+    if (ETAT.resultat) return;
+
+    const joueur    = ETAT.joueur_courant;
+    const ia_type   = joueur === 1 ? ETAT.ia_rouge : ETAT.ia_jaune;
+    const profondeur = joueur === 1 ? ETAT.profondeur_rouge : ETAT.profondeur_jaune;
+
+    const res  = await fetch("/api/ia_step", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ ...getEtatServeur(), ia_type, profondeur })
+    });
+    const data = await res.json();
+
+    if (data.status === "fin" || data.status === "nul") return;
+
+    ETAT.plateau        = data.plateau;
+    ETAT.joueur_courant = data.joueur_courant;
+    ETAT.historique     = data.historique;
+    ETAT.resultat       = data.resultat;
+
+    mettreAJourUI();
+}
+
+/* ================================================
+   TIMER IA VS IA
+================================================ */
+
+function demarrerTimerIA() {
+    if (ETAT.timer_ia !== null) return;
+
+    ETAT.timer_ia = setInterval(async () => {
+        if (ETAT.en_train || ETAT.resultat) return;
+        ETAT.en_train = true;
+
+        const info = document.getElementById("info");
+        if (info) info.innerHTML = "🤖 IA joue...";
+
+        await jouerIA();
+
+        ETAT.en_train = false;
+        if (ETAT.resultat) stopperTimerIA();
+    }, ETAT.delai_ia);
+}
+
+function stopperTimerIA() {
+    if (ETAT.timer_ia !== null) {
+        clearInterval(ETAT.timer_ia);
+        ETAT.timer_ia = null;
+    }
+}
+
+/* ================================================
+   ANNULER COUP
+================================================ */
+
+async function annulerCoup() {
+    if (ETAT.en_train) return;
+    stopperTimerIA();
+    ETAT.en_train = false;
+    cacherConseil();
+
+    const res  = await fetch("/api/annuler", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(getEtatServeur())
+    });
+    const data = await res.json();
+
+    ETAT.plateau        = data.plateau;
+    ETAT.joueur_courant = data.joueur_courant;
+    ETAT.historique     = data.historique;
+    ETAT.resultat       = data.resultat;
+
+    mettreAJourUI();
+}
+
+/* ================================================
+   CHANGER MODE
+================================================ */
+
+async function changerMode() {
+    const modeStr = document.getElementById("modeSelect").value;
+    const mode    = parseInt(modeStr);
+    if (isNaN(mode)) return;
+
+    stopperTimerIA();
+    ETAT.en_train = false;
+    ETAT.mode     = mode;
+    cacherConseil();
+
+    mettreAJourUI();
+}
+
+async function activerSituation() {
+    stopperTimerIA();
+    ETAT.en_train = false;
+    cacherConseil();
+
+    ETAT.mode = ETAT.mode === 3 ? 2 : 3;
+
+    const modeSelect = document.getElementById("modeSelect");
+    if (modeSelect) modeSelect.value = ETAT.mode === 3 ? "" : String(ETAT.mode);
+
+    mettreAJourUI();
+}
+
+/* ================================================
+   CHANGER DÉPART
+================================================ */
+
+async function changerDepart() {
+    const couleur = parseInt(document.getElementById("departSelect").value);
+    ETAT.couleur_depart = couleur;
+    await nouvellePartie();
+}
+
+/* ================================================
+   CHANGER PROFONDEUR
+================================================ */
+
+async function changerProfondeur(joueur) {
+    const id   = joueur === "rouge" ? "profondeurRouge" : "profondeurJaune";
+    const prof = parseInt(document.getElementById(id).value);
+    if (joueur === "rouge") ETAT.profondeur_rouge = prof;
+    else ETAT.profondeur_jaune = prof;
+}
+
+async function changerStrategie() {
+    ETAT.ia_rouge = document.getElementById("strategieRouge").value;
+    ETAT.ia_jaune = document.getElementById("strategieJaune").value;
+}
+
+function appliquerDelaiIA() {
+    ETAT.delai_ia = parseInt(document.getElementById("delaiIA").value) || 600;
+    stopperTimerIA();
+    if (ETAT.mode === 0 && !ETAT.resultat) demarrerTimerIA();
+}
+
+/* ================================================
+   MODE SITUATION
+================================================ */
+
+async function situationPlacer(lig, col) {
+    let couleur = ETAT.pion_editeur;
+    if (ETAT.plateau[lig][col] === couleur) couleur = 0;
+
+    const res  = await fetch("/api/situation/placer", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ ...getEtatServeur(), lig, col, couleur })
+    });
+    const data = await res.json();
+
+    ETAT.plateau = data.plateau;
+    afficherPlateauEditeur(ETAT.plateau);
 
     const info = document.getElementById("info");
     if (data.victoire_rouge) {
-        info.innerHTML = "🔴 Rouge est déjà en position gagnante sur ce plateau !";
+        info.innerHTML = "🔴 Rouge est déjà gagnant !";
         info.className = "info fin";
     } else if (data.victoire_jaune) {
-        info.innerHTML = "🟡 Jaune est déjà en position gagnante sur ce plateau !";
+        info.innerHTML = "🟡 Jaune est déjà gagnant !";
         info.className = "info fin";
     } else {
         info.innerHTML = "🧠 Mode Situation — placez vos pions librement";
@@ -246,78 +421,58 @@ async function situationPlacer(lig, col) {
     }
 }
 
-
-/* ================================================
-   MODE SITUATION — CHANGER PION ACTIF
-================================================ */
-
 async function changerPionEditeur(pion) {
-    etatActuel = { ...etatActuel, pion_editeur: pion };
+    ETAT.pion_editeur = pion;
     mettreAJourBoutonsPion(pion);
-
-    await apiFetch("/api/situation/pion", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ pion })
-    });
 }
 
 function mettreAJourBoutonsPion(pion) {
     const btnRouge   = document.getElementById("btnPionRouge");
     const btnJaune   = document.getElementById("btnPionJaune");
     const btnEffacer = document.getElementById("btnPionEffacer");
-
     if (btnRouge)   btnRouge.classList.toggle("actif", pion === 1);
     if (btnJaune)   btnJaune.classList.toggle("actif", pion === 2);
     if (btnEffacer) btnEffacer.classList.toggle("actif", pion === 0);
 }
 
-
-/* ================================================
-   MODE SITUATION — EFFACER PLATEAU
-================================================ */
-
 async function situationEffacer() {
-    const res  = await apiFetch("/api/situation/effacer", { method: "POST" });
-    const data = await res.json();
-
-    etatActuel = { ...etatActuel, plateau: data.plateau };
-    afficherPlateauEditeur(data.plateau);
+    ETAT.plateau = Array.from({ length: ETAT.lignes }, () => new Array(ETAT.colonnes).fill(0));
+    afficherPlateauEditeur(ETAT.plateau);
 
     const info = document.getElementById("info");
     info.innerHTML = "🧠 Mode Situation — plateau effacé";
     info.className = "info";
 
     const zoneResultat = document.getElementById("resultатAnalyse");
+    const zoneContainer = document.getElementById("zoneAnalyseResultat");
     if (zoneResultat) zoneResultat.innerHTML = "";
+    if (zoneContainer) zoneContainer.style.display = "none";
 }
-
-
-/* ================================================
-   MODE SITUATION — ANALYSER LA POSITION
-================================================ */
 
 async function situationAnalyser() {
     const joueurSelect = document.getElementById("joueurAnalyse");
-    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
+    const joueur_analyse = joueurSelect ? parseInt(joueurSelect.value) : 1;
+
+    const profSelect = document.getElementById("profondeurAnalyse");
+    const profondeur = profSelect ? parseInt(profSelect.value) : 6;
 
     const info = document.getElementById("info");
     info.innerHTML = "🔍 Analyse en cours...";
     info.className = "info ia-thinking";
 
-    const res  = await apiFetch("/api/situation/analyser", {
+    const res  = await fetch("/api/situation/analyser", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ joueur })
+        body:    JSON.stringify({ ...getEtatServeur(), joueur_analyse, profondeur })
     });
     const data = await res.json();
 
-    // Remettre le message normal dans #info
     info.innerHTML = "🧠 Mode Situation — placez vos pions librement";
     info.className = "info";
 
-    const zoneResultat = document.getElementById("resultатAnalyse");
+    const zoneResultat  = document.getElementById("resultатAnalyse");
     const zoneContainer = document.getElementById("zoneAnalyseResultat");
+
     if (zoneResultat) {
         let couleurResultat = "#facc15";
         if (data.gagnant === "rouge")     couleurResultat = "#ef4444";
@@ -335,24 +490,26 @@ async function situationAnalyser() {
         if (zoneContainer) zoneContainer.style.display = "block";
     }
 
-    if (data.meilleur_col !== undefined) {
-        surlignerColonne(data.meilleur_col);
-    }
+    if (data.meilleur_col !== undefined) surlignerColonne(data.meilleur_col);
 }
 
-
-
+async function changerProfondeurAnalyse() {
+    // Rien à faire côté serveur, juste côté client
+}
 
 /* ================================================
-   CONSEIL HUMAIN — MEILLEUR COUP EN TEMPS RÉEL
+   CONSEIL IA
 ================================================ */
 
 async function afficherConseil() {
-    const res  = await apiFetch("/api/conseil");
+    const res  = await fetch("/api/conseil", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ ...getEtatServeur(), profondeur: 4 })
+    });
     const data = await res.json();
 
     if (data.status !== "ok") return;
-
     afficherScoresColonnes(data.scores, data.meilleur_col);
 }
 
@@ -362,69 +519,48 @@ function afficherScoresColonnes(scores, meilleurCol) {
     const plateauDiv = document.getElementById("plateau");
     if (!plateauDiv) return;
 
-    const nbCol = etatActuel ? etatActuel.plateau[0].length : 9;
+    const nbCol = ETAT.colonnes;
     const cases = plateauDiv.querySelectorAll(".case");
     if (cases.length === 0) return;
 
     plateauDiv.style.position = "relative";
 
-    // Trouver min et max pour normaliser les couleurs
-    const vals = Object.values(scores);
-    const maxVal = Math.max(...vals);
-    const minVal = Math.min(...vals);
-
     for (let col = 0; col < nbCol; col++) {
         const caseTarget = cases[col];
         if (!caseTarget) continue;
 
-        const rect = caseTarget.getBoundingClientRect();
+        const rect        = caseTarget.getBoundingClientRect();
         const plateauRect = plateauDiv.getBoundingClientRect();
+        const scoreCol    = scores[col];
+        const isMeilleur  = col === meilleurCol;
 
-        const scoreCol = scores[col];
-        const isMeilleur = col === meilleurCol;
+        let couleur = "#60a5fa";
+        if (scoreCol === undefined)          couleur = "#475569";
+        else if (scoreCol >= 99000000)       couleur = "#22c55e";
+        else if (scoreCol <= -99000000)      couleur = "#ef4444";
+        else if (scoreCol > 500)             couleur = "#86efac";
+        else if (scoreCol < -500)            couleur = "#fca5a5";
 
-        // Couleur selon le score
-        let couleur = "#60a5fa"; // bleu = neutre
-        if (scoreCol === undefined) {
-            couleur = "#475569"; // gris = colonne pleine
-        } else if (scoreCol >= 99000000) {
-            couleur = "#22c55e"; // vert = victoire
-        } else if (scoreCol <= -99000000) {
-            couleur = "#ef4444"; // rouge = défaite
-        } else if (scoreCol > 500) {
-            couleur = "#86efac"; // vert clair = avantage
-        } else if (scoreCol < -500) {
-            couleur = "#fca5a5"; // rouge clair = désavantage
-        }
-
-        // Formater le score
         let texteScore = scoreCol === undefined ? "X" :
-            scoreCol >= 99000000 ? "WIN" :
+            scoreCol >= 99000000  ? "WIN"  :
             scoreCol <= -99000000 ? "LOSE" :
             (scoreCol > 0 ? "+" : "") + scoreCol;
 
         const div = document.createElement("div");
         div.className = "conseil-score-col";
-        div.id = `conseilScore_${col}`;
 
         div.innerHTML = `
-            <div style="
-                text-align: center;
-                color: ${couleur};
-                font-size: ${isMeilleur ? "13px" : "11px"};
-                font-weight: ${isMeilleur ? "bold" : "normal"};
-                opacity: ${isMeilleur ? "1" : "0.75"};
-            ">
+            <div style="text-align:center; color:${couleur}; font-size:${isMeilleur ? "13px" : "11px"}; font-weight:${isMeilleur ? "bold" : "normal"}; opacity:${isMeilleur ? "1" : "0.75"};">
                 ${isMeilleur ? `<div style="font-size:22px; animation: bounceDown 0.8s infinite;">▼</div>` : ""}
                 <div>${texteScore}</div>
             </div>
         `;
 
-        div.style.position = "absolute";
-        div.style.left = (rect.left - plateauRect.left + rect.width/2 - 20) + "px";
-        div.style.top = isMeilleur ? "-65px" : "-30px";
-        div.style.width = "40px";
-        div.style.zIndex = "100";
+        div.style.position    = "absolute";
+        div.style.left        = (rect.left - plateauRect.left + rect.width/2 - 20) + "px";
+        div.style.top         = isMeilleur ? "-65px" : "-30px";
+        div.style.width       = "40px";
+        div.style.zIndex      = "100";
         div.style.pointerEvents = "none";
 
         plateauDiv.appendChild(div);
@@ -438,18 +574,16 @@ function cacherConseil() {
 }
 
 /* ================================================
-   SURLIGNER UNE COLONNE
+   SURLIGNER COLONNE
 ================================================ */
 
 function surlignerColonne(col) {
     const cases = document.querySelectorAll(".case");
-    const nbCol = etatActuel ? etatActuel.plateau[0].length : 9;
+    const nbCol = ETAT.colonnes;
 
     cases.forEach((c, index) => {
         c.classList.remove("surligne");
-        if (index % nbCol === col) {
-            c.classList.add("surligne");
-        }
+        if (index % nbCol === col) c.classList.add("surligne");
     });
 
     setTimeout(() => {
@@ -457,226 +591,21 @@ function surlignerColonne(col) {
     }, 3000);
 }
 
-
 /* ================================================
-   JOUER COUP HUMAIN (mode normal)
+   SAUVEGARDER PARTIE
 ================================================ */
 
-async function jouer(col) {
-    if (enTrain) return;
-    if (etatActuel && etatActuel.resultat) return;
-    if (etatActuel && etatActuel.mode === 0) return;
-    if (etatActuel && etatActuel.mode === 3) return;
+async function sauvegarderPartie() {
+    if (ETAT.partie_sauvegardee) return;
 
-    enTrain = true;
-    desactiverPlateau();
-
-    const res  = await apiFetch("/api/jouer", {
+    await fetch("/api/sauvegarder", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ col })
-    });
-    const data = await res.json();
-
-    if (data.status === "col_invalide" || data.status === "fin") {
-        enTrain = false;
-        activerPlateau();
-        return;
-    }
-
-    etatActuel = { ...etatActuel, ...data };
-    mettreAJourUI(etatActuel);
-
-    if (etatActuel.resultat) {
-        enTrain = false;
-        return;
-    }
-
-    if (etatActuel.mode === 1) {
-        const info = document.getElementById("info");
-        if (info) {
-            info.innerHTML = "🧠 IA réfléchit...";
-            info.className = "info ia-thinking";
-        }
-
-        await pause(300);
-
-        const resIA  = await apiFetch("/api/ia_step", { method: "POST" });
-        const dataIA = await resIA.json();
-
-        etatActuel = { ...etatActuel, ...dataIA };
-        mettreAJourUI(etatActuel);
-    }
-
-    enTrain = false;
-    activerPlateau();
-}
-
-
-/* ================================================
-   TIMER IA VS IA
-================================================ */
-
-function demarrerTimerIA() {
-    if (timerIA !== null) return;
-
-    timerIA = setInterval(async () => {
-        if (enTrain) return;
-        enTrain = true;
-
-        const info = document.getElementById("info");
-        if (info) info.innerHTML = "🤖 IA joue...";
-
-        const res  = await apiFetch("/api/ia_step", { method: "POST" });
-        const data = await res.json();
-
-        etatActuel = { ...etatActuel, ...data };
-        mettreAJourUI(etatActuel);
-
-        if (etatActuel.resultat) stopperTimerIA();
-
-        enTrain = false;
-    }, delaiIA);
-}
-
-function stopperTimerIA() {
-    if (timerIA !== null) {
-        clearInterval(timerIA);
-        timerIA = null;
-    }
-}
-
-
-/* ================================================
-   CHANGER MODE
-================================================ */
-
-async function changerMode() {
-    const modeStr = document.getElementById("modeSelect").value;
-    const mode = parseInt(modeStr);
-
-    // Si le select est vide → ignorer
-    if (isNaN(mode)) return;
-
-    stopperTimerIA();
-    enTrain = false;
-
-    const btnSituation = document.getElementById("btnSituation");
-    if (btnSituation) btnSituation.classList.toggle("actif", false);
-
-    // Récupérer le joueur sélectionné dans mode situation
-    const joueurSelect = document.getElementById("joueurAnalyse");
-    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
-
-    await apiFetch("/api/mode", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode, joueur_courant: joueur })
+        body:    JSON.stringify({ ...getEtatServeur(), mode: ETAT.mode })
     });
 
-    await chargerPlateau();
+    ETAT.partie_sauvegardee = true;
 }
-
-
-/* ================================================
-   CHANGER PROFONDEUR
-================================================ */
-
-async function changerProfondeur(joueur) {
-    const id   = joueur === "rouge" ? "profondeurRouge" : "profondeurJaune";
-    const prof = parseInt(document.getElementById(id).value);
-
-    await apiFetch("/api/profondeur", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ joueur, profondeur: prof })
-    });
-}
-
-
-/* ================================================
-   CHOISIR QUI COMMENCE
-================================================ */
-
-async function changerDepart() {
-    const couleur = parseInt(document.getElementById("departSelect").value);
-
-    stopperTimerIA();
-    enTrain = false;
-
-    const res  = await apiFetch("/api/couleur_depart", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ couleur })
-    });
-    const data = await res.json();
-
-    etatActuel = { ...etatActuel, ...data };
-    await chargerPlateau();
-}
-
-
-/* ================================================
-   NOUVELLE PARTIE
-================================================ */
-
-async function nouvellePartie() {
-    stopperTimerIA();
-    enTrain = false;
-    replayActif = false;
-
-    const ctrl = document.getElementById("replayControls");
-    if (ctrl) ctrl.remove();
-
-    const res  = await apiFetch("/api/nouvelle", { method: "POST" });
-    const data = await res.json();
-
-    etatActuel = { ...etatActuel, ...data };
-    await chargerPlateau();
-}
-
-
-/* ================================================
-   ANNULER COUP
-================================================ */
-
-async function annulerCoup() {
-    if (enTrain) return;
-    stopperTimerIA();
-    enTrain = false;
-    await apiFetch("/api/annuler");
-    await chargerPlateau();
-}
-
-
-/* ================================================
-   DÉLAI IA VS IA
-================================================ */
-
-function appliquerDelaiIA() {
-    delaiIA = parseInt(document.getElementById("delaiIA").value) || 600;
-    stopperTimerIA();
-    if (etatActuel && etatActuel.mode === 0 && !etatActuel.resultat) {
-        demarrerTimerIA();
-    }
-}
-
-
-/* ================================================
-   CHANGER STRATÉGIE IA
-================================================ */
-
-async function changerStrategie() {
-    const rouge = document.getElementById("strategieRouge").value;
-    const jaune = document.getElementById("strategieJaune").value;
-
-    await apiFetch("/api/ia_type", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ rouge, jaune })
-    });
-}
-
 
 /* ================================================
    HISTORIQUE
@@ -684,7 +613,7 @@ async function changerStrategie() {
 
 async function ouvrirHistorique() {
     document.getElementById("modalHistorique").style.display = "block";
-    const res  = await apiFetch("/api/historique");
+    const res  = await fetch("/api/historique");
     const data = await res.json();
 
     const liste = document.getElementById("listeParties");
@@ -712,28 +641,47 @@ function fermerHistorique() {
     document.getElementById("modalHistorique").style.display = "none";
 }
 
+/* ================================================
+   CHARGER PARTIE
+================================================ */
+
+async function chargerPartie(id, coups) {
+    fermerHistorique();
+
+    const res  = await fetch(`/api/charger/${id}`);
+    const data = await res.json();
+
+    if (data.status !== "ok") return;
+
+    ETAT.plateau        = data.plateau;
+    ETAT.joueur_courant = data.joueur_courant;
+    ETAT.couleur_depart = data.couleur_depart;
+    ETAT.historique     = data.historique;
+    ETAT.resultat       = data.resultat;
+    ETAT.lignes         = data.lignes;
+    ETAT.colonnes       = data.colonnes;
+    ETAT.partie_sauvegardee = true;
+
+    ETAT.replay_actif  = true;
+    ETAT.replay_coups  = coups.split("").map(Number);
+    ETAT.replay_index  = ETAT.replay_coups.length;
+
+    afficherReplay();
+    afficherControlesReplay();
+}
 
 /* ================================================
    REPLAY
 ================================================ */
 
-function chargerPartie(id, coups) {
-    fermerHistorique();
-    replayActif = true;
-    replayCoups = coups.split("").map(Number);
-    replayIndex = 0;
-    afficherReplay();
-    afficherControlesReplay();
-}
-
 function afficherReplay() {
-    const lignes   = 9;
-    const colonnes = 9;
+    const lignes   = ETAT.lignes;
+    const colonnes = ETAT.colonnes;
     let plateau = Array.from({ length: lignes }, () => new Array(colonnes).fill(0));
-    let joueur  = 1;
+    let joueur  = ETAT.couleur_depart || 1;
 
-    for (let i = 0; i < replayIndex; i++) {
-        const col = replayCoups[i] - 1;
+    for (let i = 0; i < ETAT.replay_index; i++) {
+        const col = ETAT.replay_coups[i] - 1;
         for (let row = lignes - 1; row >= 0; row--) {
             if (plateau[row][col] === 0) {
                 plateau[row][col] = joueur;
@@ -746,7 +694,7 @@ function afficherReplay() {
     afficherPlateau(plateau);
 
     const info = document.getElementById("info");
-    if (info) info.innerHTML = `🎬 Replay — coup ${replayIndex} / ${replayCoups.length}`;
+    if (info) info.innerHTML = `🎬 Replay — coup ${ETAT.replay_index} / ${ETAT.replay_coups.length}`;
 }
 
 function afficherControlesReplay() {
@@ -764,20 +712,35 @@ function afficherControlesReplay() {
 }
 
 function replaySuivant() {
-    if (replayIndex < replayCoups.length) { replayIndex++; afficherReplay(); }
+    if (ETAT.replay_index < ETAT.replay_coups.length) { ETAT.replay_index++; afficherReplay(); }
 }
 
 function replayPrecedent() {
-    if (replayIndex > 0) { replayIndex--; afficherReplay(); }
+    if (ETAT.replay_index > 0) { ETAT.replay_index--; afficherReplay(); }
 }
 
 function quitterReplay() {
-    replayActif = false;
+    ETAT.replay_actif = false;
     const ctrl = document.getElementById("replayControls");
     if (ctrl) ctrl.remove();
-    chargerPlateau();
+    mettreAJourUI();
 }
 
+/* ================================================
+   HELPER : état à envoyer au serveur
+================================================ */
+
+function getEtatServeur() {
+    return {
+        plateau:        ETAT.plateau,
+        joueur_courant: ETAT.joueur_courant,
+        couleur_depart: ETAT.couleur_depart,
+        historique:     ETAT.historique,
+        resultat:       ETAT.resultat,
+        lignes:         ETAT.lignes,
+        colonnes:       ETAT.colonnes,
+    };
+}
 
 /* ================================================
    UTILITAIRES
@@ -801,22 +764,7 @@ function activerPlateau() {
     });
 }
 
-
-/* ================================================
-   CHANGER PROFONDEUR ANALYSE (mode situation)
-================================================ */
-
-async function changerProfondeurAnalyse() {
-    const prof = parseInt(document.getElementById("profondeurAnalyse").value);
-
-    await apiFetch("/api/profondeur", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ joueur: "rouge", profondeur: prof })
-    });
-    await apiFetch("/api/profondeur", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ joueur: "jaune", profondeur: prof })
-    });
+window.onclick = function(event) {
+    const modal = document.getElementById("modalHistorique");
+    if (event.target === modal) modal.style.display = "none";
 }
