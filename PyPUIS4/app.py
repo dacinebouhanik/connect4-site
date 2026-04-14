@@ -2,37 +2,76 @@ from flask import Flask, render_template, jsonify, request, session
 from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
 import os
-import random
 import init_db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "puissance4_secret_key_2024")
 
 # =========================================================
-# GESTION DES SESSIONS — 1 état par visiteur
+# ÉTAT PAR DÉFAUT
 # =========================================================
 
-sessions = {}
-
-def get_state():
-    sid = session.get("sid")
-    if sid is None or sid not in sessions:
-        sid = os.urandom(16).hex()
-        session["sid"] = sid
-        sessions[sid] = creer_etat()
-    return sessions[sid]
-
-def creer_etat():
+def etat_defaut():
     return {
-        "modele":             Puissance4Modele(),
-        "mode":               2,          # 2=HvH, 1=HvIA, 0=IAvIA, 3=Situation
+        "mode":               2,
         "ia_rouge":           "minimax",
         "ia_jaune":           "minimax",
-        "profondeur_rouge":   4,
+        "profondeur_rouge":   7,
         "profondeur_jaune":   4,
         "partie_sauvegardee": False,
-        "pion_editeur":       1,          # 1=ROUGE, 2=JAUNE (mode situation)
+        "pion_editeur":       1,
+        # Plateau sérialisé (liste de listes)
+        "plateau":            None,
+        "joueur_courant":     1,
+        "couleur_depart":     1,
+        "historique":         [],
+        "resultat":           None,
+        "lignes":             9,
+        "colonnes":           9,
     }
+
+def get_state():
+    """Retourne l'état depuis la session Flask (cookie signé)."""
+    if "etat" not in session:
+        session["etat"] = etat_defaut()
+    return session["etat"]
+
+def sauver_state(state):
+    """Marque la session comme modifiée pour que Flask la sauvegarde."""
+    session["etat"] = state
+    session.modified = True
+
+# =========================================================
+# HELPERS : modèle <-> session
+# =========================================================
+
+def modele_depuis_state(state):
+    """Reconstruit un Puissance4Modele depuis les données de la session."""
+    m = Puissance4Modele()
+    m.lignes          = state["lignes"]
+    m.colonnes        = state["colonnes"]
+    m.couleur_depart  = state["couleur_depart"]
+    m.joueur_courant  = state["joueur_courant"]
+    m.resultat        = state["resultat"]
+    m.historique      = [tuple(h) for h in state["historique"]]
+
+    if state["plateau"] is not None:
+        m.plateau = state["plateau"]
+    else:
+        m.plateau = m.creer_plateau()
+
+    return m
+
+def state_depuis_modele(state, modele):
+    """Sérialise le Puissance4Modele dans le dictionnaire state."""
+    state["plateau"]         = modele.plateau
+    state["joueur_courant"]  = modele.joueur_courant
+    state["couleur_depart"]  = modele.couleur_depart
+    state["resultat"]        = modele.resultat
+    state["historique"]      = [list(h) for h in modele.historique]
+    state["lignes"]          = modele.lignes
+    state["colonnes"]        = modele.colonnes
+    return state
 
 # =========================================================
 # PAGE PRINCIPALE
@@ -50,7 +89,7 @@ def accueil():
 @app.route("/api/plateau")
 def get_plateau():
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
     return jsonify({
         "plateau":          modele.plateau,
         "joueur":           modele.joueur_courant,
@@ -73,6 +112,7 @@ def changer_mode():
     state = get_state()
     data  = request.get_json()
     state["mode"] = int(data["mode"])
+    sauver_state(state)
     return jsonify({"status": "ok", "mode": state["mode"]})
 
 # =========================================================
@@ -84,11 +124,12 @@ def changer_profondeur():
     state  = get_state()
     data   = request.get_json()
     joueur = data.get("joueur", "rouge")
-    prof   = int(data.get("profondeur", 4))
+    prof   = int(data.get("profondeur", 7))
     if joueur == "rouge":
         state["profondeur_rouge"] = prof
     else:
         state["profondeur_jaune"] = prof
+    sauver_state(state)
     return jsonify({"status": "ok"})
 
 # =========================================================
@@ -101,6 +142,7 @@ def changer_ia():
     data  = request.get_json()
     state["ia_rouge"] = data["rouge"]
     state["ia_jaune"] = data["jaune"]
+    sauver_state(state)
     return jsonify({"status": "ok"})
 
 # =========================================================
@@ -109,13 +151,18 @@ def changer_ia():
 
 @app.route("/api/couleur_depart", methods=["POST"])
 def couleur_depart():
-    state   = get_state()
-    modele  = state["modele"]
-    data    = request.get_json()
+    state  = get_state()
+    data   = request.get_json()
     couleur = int(data.get("couleur", 1))
+
+    modele = modele_depuis_state(state)
     modele.couleur_depart = couleur
     modele.nouvelle_partie()
+
+    state = state_depuis_modele(state, modele)
     state["partie_sauvegardee"] = False
+    sauver_state(state)
+
     return jsonify({
         "status":  "ok",
         "plateau": modele.plateau,
@@ -126,8 +173,7 @@ def couleur_depart():
 # SAUVEGARDE
 # =========================================================
 
-def enregistrer_si_finie(state):
-    modele = state["modele"]
+def enregistrer_si_finie(state, modele):
     if modele.resultat is None or state["partie_sauvegardee"]:
         return
     coups     = modele.exporter_coups_string()
@@ -149,17 +195,16 @@ def enregistrer_si_finie(state):
 # FIN DE PARTIE
 # =========================================================
 
-def verifier_fin(state):
-    modele = state["modele"]
+def verifier_fin(state, modele):
     coords = modele.verifier_victoire(modele.joueur_courant)
     if coords is not None:
         gagnant = "rouge" if modele.joueur_courant == modele.ROUGE else "jaune"
         modele.definir_resultat(gagnant)
-        enregistrer_si_finie(state)
+        enregistrer_si_finie(state, modele)
         return True
     if modele.plateau_plein():
         modele.definir_resultat("nul")
-        enregistrer_si_finie(state)
+        enregistrer_si_finie(state, modele)
         return True
     return False
 
@@ -167,8 +212,7 @@ def verifier_fin(state):
 # COUP IA
 # =========================================================
 
-def jouer_ia(state):
-    modele = state["modele"]
+def jouer_ia(state, modele):
     if modele.resultat is not None:
         return None
 
@@ -186,7 +230,7 @@ def jouer_ia(state):
         scores = modele.calculer_scores_minimax(profondeur)
         if not scores:
             modele.definir_resultat("nul")
-            enregistrer_si_finie(state)
+            enregistrer_si_finie(state, modele)
             return None
         best_score = max(scores.values())
         best_cols  = [c for c, s in scores.items() if s == best_score]
@@ -196,19 +240,19 @@ def jouer_ia(state):
     modele.jouer_coup(col)
     print(f"[IA] Joueur {'ROUGE' if joueur==1 else 'JAUNE'} → colonne {col}")
 
-    if not verifier_fin(state):
+    if not verifier_fin(state, modele):
         modele.changer_joueur()
 
     return col
 
 # =========================================================
-# JOUER COUP HUMAIN (mode normal)
+# JOUER COUP HUMAIN
 # =========================================================
 
 @app.route("/api/jouer", methods=["POST"])
 def jouer():
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
@@ -220,8 +264,11 @@ def jouer():
     if lig is None:
         return jsonify({"status": "col_invalide"})
 
-    if not verifier_fin(state):
+    if not verifier_fin(state, modele):
         modele.changer_joueur()
+
+    state = state_depuis_modele(state, modele)
+    sauver_state(state)
 
     return jsonify({
         "status":   "ok",
@@ -237,7 +284,7 @@ def jouer():
 @app.route("/api/ia_step", methods=["POST"])
 def ia_step():
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
 
     if state["mode"] not in (0, 1):
         return jsonify({"status": "erreur_mode"})
@@ -245,7 +292,10 @@ def ia_step():
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
 
-    col = jouer_ia(state)
+    col = jouer_ia(state, modele)
+
+    state = state_depuis_modele(state, modele)
+    sauver_state(state)
 
     return jsonify({
         "status":   "ok",
@@ -261,21 +311,22 @@ def ia_step():
 
 @app.route("/api/situation/placer", methods=["POST"])
 def situation_placer():
-    """Place ou efface un pion librement sur n'importe quelle case."""
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
     data   = request.get_json()
 
     lig    = int(data["lig"])
     col    = int(data["col"])
-    couleur = int(data.get("couleur", state["pion_editeur"]))  # 0=effacer, 1=rouge, 2=jaune
+    couleur = int(data.get("couleur", state["pion_editeur"]))
 
     if 0 <= lig < modele.lignes and 0 <= col < modele.colonnes:
         modele.plateau[lig][col] = couleur
 
-    # Vérifie si une victoire existe déjà sur le plateau édité
     victoire_rouge = modele._verifier_victoire_sur_plateau(modele.plateau, modele.ROUGE)
     victoire_jaune = modele._verifier_victoire_sur_plateau(modele.plateau, modele.JAUNE)
+
+    state = state_depuis_modele(state, modele)
+    sauver_state(state)
 
     return jsonify({
         "status":         "ok",
@@ -285,7 +336,7 @@ def situation_placer():
     })
 
 # =========================================================
-# MODE SITUATION — CHANGER LE PION ACTIF DE L'ÉDITEUR
+# MODE SITUATION — CHANGER LE PION ACTIF
 # =========================================================
 
 @app.route("/api/situation/pion", methods=["POST"])
@@ -293,6 +344,7 @@ def situation_pion():
     state = get_state()
     data  = request.get_json()
     state["pion_editeur"] = int(data.get("pion", 1))
+    sauver_state(state)
     return jsonify({"status": "ok", "pion_editeur": state["pion_editeur"]})
 
 # =========================================================
@@ -302,85 +354,67 @@ def situation_pion():
 @app.route("/api/situation/effacer", methods=["POST"])
 def situation_effacer():
     state  = get_state()
-    modele = state["modele"]
-    modele.plateau  = modele.creer_plateau()
+    modele = modele_depuis_state(state)
+    modele.plateau    = modele.creer_plateau()
     modele.historique = []
     modele.resultat   = None
+
+    state = state_depuis_modele(state, modele)
+    sauver_state(state)
+
     return jsonify({"status": "ok", "plateau": modele.plateau})
 
 # =========================================================
 # MODE SITUATION — ANALYSER LA POSITION
-# Répond : qui gagne, en combien de coups
 # =========================================================
 
 @app.route("/api/situation/analyser", methods=["POST"])
 def situation_analyser():
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
     data   = request.get_json() or {}
 
     joueur_analyse = int(data.get("joueur", modele.ROUGE))
     modele.joueur_courant = joueur_analyse
 
-    # Vérifie victoire déjà présente
     if modele._verifier_victoire_sur_plateau(modele.plateau, modele.ROUGE):
-        return jsonify({
-            "gagnant": "rouge",
-            "coups":   0,
-            "message": "🔴 Rouge a déjà gagné sur ce plateau !"
-        })
+        return jsonify({"gagnant": "rouge", "coups": 0,
+                        "message": "🔴 Rouge a déjà gagné sur ce plateau !"})
 
     if modele._verifier_victoire_sur_plateau(modele.plateau, modele.JAUNE):
-        return jsonify({
-            "gagnant": "jaune",
-            "coups":   0,
-            "message": "🟡 Jaune a déjà gagné sur ce plateau !"
-        })
+        return jsonify({"gagnant": "jaune", "coups": 0,
+                        "message": "🟡 Jaune a déjà gagné sur ce plateau !"})
 
     if modele.plateau_plein():
-        return jsonify({
-            "gagnant": "nul",
-            "coups":   0,
-            "message": "🤝 Plateau plein — match nul !"
-        })
+        return jsonify({"gagnant": "nul", "coups": 0,
+                        "message": "🤝 Plateau plein — match nul !"})
 
-    # ✅ Profondeur minimum 6 pour l'analyse de situation
     profondeur = state["profondeur_rouge"] if joueur_analyse == modele.ROUGE else state["profondeur_jaune"]
-    profondeur = max(profondeur, 4)
+    profondeur = max(profondeur, 7)
 
     scores = modele.calculer_scores_minimax(profondeur)
 
     if not scores:
-        return jsonify({
-            "gagnant": "inconnu",
-            "coups":   -1,
-            "message": "❓ Impossible d'analyser cette position."
-        })
+        return jsonify({"gagnant": "inconnu", "coups": -1,
+                        "message": "❓ Impossible d'analyser cette position."})
 
-    best_score = max(scores.values())
-    best_cols = [c for c, s in scores.items() if s == best_score]
-    meilleur_col = min(best_cols)  # prend la colonne la plus à gauche
+    best_score  = max(scores.values())
+    best_cols   = [c for c, s in scores.items() if s == best_score]
+    meilleur_col = min(best_cols)
 
     nom_joueur = "Rouge" if joueur_analyse == modele.ROUGE else "Jaune"
     emoji      = "🔴"    if joueur_analyse == modele.ROUGE else "🟡"
 
     if best_score >= 99000000:
-        # ✅ Calcul correct du nombre de coups
-        coups_restants = 100000000 - best_score
-        # coups_restants = 0 → victoire immédiate = 1 coup
-        # coups_restants = 1 → gagne en 2 coups etc.
-        nb_coups = coups_restants + 1
-        message = f"{emoji} {nom_joueur} gagne en {nb_coups} coup(s) ! Jouer colonne {meilleur_col + 1}."
-        gagnant = "rouge" if joueur_analyse == modele.ROUGE else "jaune"
-
+        nb_coups = (100000000 - best_score) + 1
+        message  = f"{emoji} {nom_joueur} gagne en {nb_coups} coup(s) ! Jouer colonne {meilleur_col + 1}."
+        gagnant  = "rouge" if joueur_analyse == modele.ROUGE else "jaune"
     elif best_score <= -99000000:
         adv       = "Jaune" if joueur_analyse == modele.ROUGE else "Rouge"
         emoji_adv = "🟡"    if joueur_analyse == modele.ROUGE else "🔴"
-        coups_restants = best_score + 100000000
-        nb_coups  = abs(coups_restants) + 1
-        message = f"{emoji_adv} {adv} gagne en {nb_coups} coup(s). Position perdue pour {nom_joueur}."
-        gagnant = "jaune" if joueur_analyse == modele.ROUGE else "rouge"
-
+        nb_coups  = abs(best_score + 100000000) + 1
+        message   = f"{emoji_adv} {adv} gagne en {nb_coups} coup(s). Position perdue pour {nom_joueur}."
+        gagnant   = "jaune" if joueur_analyse == modele.ROUGE else "rouge"
     else:
         message = f"⚖️ Position équilibrée. Meilleur coup pour {nom_joueur} : colonne {meilleur_col + 1}. (score={best_score})"
         gagnant = "equilibre"
@@ -400,14 +434,16 @@ def situation_analyser():
 @app.route("/api/nouvelle", methods=["GET", "POST"])
 def nouvelle():
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
     data   = request.get_json(silent=True) or {}
 
     if "couleur_depart" in data:
         modele.couleur_depart = int(data["couleur_depart"])
 
     modele.nouvelle_partie()
+    state = state_depuis_modele(state, modele)
     state["partie_sauvegardee"] = False
+    sauver_state(state)
 
     return jsonify({
         "status":  "reset",
@@ -422,9 +458,13 @@ def nouvelle():
 @app.route("/api/annuler")
 def annuler():
     state  = get_state()
-    modele = state["modele"]
+    modele = modele_depuis_state(state)
     modele.annuler_dernier_coup()
+
+    state = state_depuis_modele(state, modele)
     state["partie_sauvegardee"] = False
+    sauver_state(state)
+
     return jsonify({
         "status":  "ok",
         "plateau": modele.plateau,
@@ -460,8 +500,14 @@ def charger_partie(partie_id):
     partie = get_partie(partie_id)
     if not partie:
         return jsonify({"status": "erreur"})
-    state["modele"].charger_depuis_bd(partie)
+
+    modele = Puissance4Modele()
+    modele.charger_depuis_bd(partie)
+
+    state = state_depuis_modele(state, modele)
     state["partie_sauvegardee"] = True
+    sauver_state(state)
+
     return jsonify({"status": "ok"})
 
 # =========================================================
