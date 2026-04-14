@@ -3,7 +3,7 @@ from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
 import os
 import init_db
-
+init_db.init_db()
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "puissance4_secret_key_2024")
 

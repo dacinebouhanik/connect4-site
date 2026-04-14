@@ -1,12 +1,13 @@
 import psycopg2
 import os
 
-database_url = os.environ.get("DATABASE_URL")
+def init_db():
+    database_url = os.environ.get("DATABASE_URL")
 
-# si on est en local et que la variable n'existe pas
-if database_url is None:
-    print("init_db ignoré : DATABASE_URL non définie (local)")
-else:
+    if database_url is None:
+        print("init_db ignoré : DATABASE_URL non définie (local)")
+        return
+
     conn = psycopg2.connect(database_url)
     cur = conn.cursor()
 
