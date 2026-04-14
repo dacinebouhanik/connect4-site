@@ -3,7 +3,7 @@ from modele import Puissance4Modele
 from db import inserer_partie, lister_parties_jeu, get_partie
 import os
 import init_db
-init_db.init_db()
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "puissance4_secret_key_2024")
 
@@ -16,7 +16,7 @@ def etat_defaut():
         "mode":               2,
         "ia_rouge":           "minimax",
         "ia_jaune":           "minimax",
-        "profondeur_rouge":  4 ,
+        "profondeur_rouge":   7,
         "profondeur_jaune":   4,
         "partie_sauvegardee": False,
         "pion_editeur":       1,
@@ -108,24 +108,13 @@ def get_plateau():
 # =========================================================
 
 @app.route("/api/mode", methods=["POST"])
-@app.route("/api/mode", methods=["POST"])
 def changer_mode():
     state = get_state()
     data  = request.get_json()
-    ancien_mode  = state["mode"]
-    nouveau_mode = int(data["mode"])
-    state["mode"] = nouveau_mode
-
-    # Si on quitte le mode situation → garder le plateau + respecter joueur choisi
-    if ancien_mode == 3 and nouveau_mode != 3:
-        joueur = int(data.get("joueur_courant", state.get("joueur_courant", 1)))
-        state["joueur_courant"] = joueur
-        state["resultat"] = None
-        state["historique"] = []
-        state["partie_sauvegardee"] = False
-
+    state["mode"] = int(data["mode"])
     sauver_state(state)
     return jsonify({"status": "ok", "mode": state["mode"]})
+
 # =========================================================
 # CHANGER PROFONDEUR
 # =========================================================
@@ -135,7 +124,7 @@ def changer_profondeur():
     state  = get_state()
     data   = request.get_json()
     joueur = data.get("joueur", "rouge")
-    prof   = int(data.get("profondeur", 4))
+    prof   = int(data.get("profondeur", 7))
     if joueur == "rouge":
         state["profondeur_rouge"] = prof
     else:
@@ -401,7 +390,7 @@ def situation_analyser():
                         "message": "🤝 Plateau plein — match nul !"})
 
     profondeur = state["profondeur_rouge"] if joueur_analyse == modele.ROUGE else state["profondeur_jaune"]
-    profondeur = max(profondeur, 4)
+    profondeur = max(profondeur, 7)
 
     scores = modele.calculer_scores_minimax(profondeur)
 
