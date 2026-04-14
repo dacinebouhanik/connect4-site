@@ -441,14 +441,17 @@ async function changerMode() {
     stopperTimerIA();
     enTrain = false;
 
-    // Mettre à jour le bouton situation
     const btnSituation = document.getElementById("btnSituation");
     if (btnSituation) btnSituation.classList.toggle("actif", mode === 3);
+
+    // ✅ Envoyer le joueur sélectionné dans mode situation
+    const joueurSelect = document.getElementById("joueurAnalyse");
+    const joueur = joueurSelect ? parseInt(joueurSelect.value) : 1;
 
     await fetch("/api/mode", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode })
+        body:    JSON.stringify({ mode, joueur_courant: joueur })
     });
 
     await chargerPlateau();
