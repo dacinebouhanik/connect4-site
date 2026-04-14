@@ -4,6 +4,7 @@ from db import inserer_partie, lister_parties_jeu, get_partie
 import os
 import init_db
 
+init_db.init_db()
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "puissance4_secret_key_2024")
 
@@ -425,6 +426,54 @@ def situation_analyser():
         "score":        best_score,
         "message":      message,
         "scores":       scores,
+    })
+
+
+# =========================================================
+# CONSEIL HUMAIN — MEILLEUR COUP EN TEMPS RÉEL
+# =========================================================
+
+@app.route("/api/conseil")
+def conseil():
+    state  = get_state()
+    modele = modele_depuis_state(state)
+
+    if modele.resultat is not None:
+        return jsonify({"status": "fin"})
+
+    joueur = modele.joueur_courant
+    profondeur = state["profondeur_rouge"] if joueur == modele.ROUGE else state["profondeur_jaune"]
+    profondeur = min(profondeur, 4)  # Limiter pour que ce soit rapide
+
+    scores = modele.calculer_scores_minimax(profondeur)
+
+    if not scores:
+        return jsonify({"status": "erreur"})
+
+    best_score  = max(scores.values())
+    best_cols   = [c for c, s in scores.items() if s == best_score]
+    centre      = modele.colonnes // 2
+    meilleur_col = min(best_cols, key=lambda c: abs(c - centre))
+
+    # Déterminer le verdict
+    if best_score >= 99000000:
+        verdict = "victoire"
+    elif best_score <= -99000000:
+        verdict = "defaite"
+    elif best_score > 1000:
+        verdict = "avantage"
+    elif best_score < -1000:
+        verdict = "desavantage"
+    else:
+        verdict = "equilibre"
+
+    return jsonify({
+        "status":       "ok",
+        "meilleur_col": meilleur_col,
+        "score":        best_score,
+        "verdict":      verdict,
+        "scores":       scores,
+        "joueur":       joueur,
     })
 
 # =========================================================
