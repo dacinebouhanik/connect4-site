@@ -5,6 +5,7 @@
 const ETAT = {
     plateau:        null,
     joueur_courant: 1,
+    joueur_humain: 1,
     couleur_depart: 1,
     historique:     [],
     resultat:       null,
@@ -28,6 +29,9 @@ const ETAT = {
     replay_coups:   [],
     replay_index:   0,
 };
+
+// Seuil pour détecter victoire/défaite (doit matcher modele.py)
+const SEUIL_VICTOIRE = 500000;
 
 /* ================================================
    INITIALISATION
@@ -129,10 +133,10 @@ function mettreAJourUI() {
         }
     }
 
-    // Bouton prédiction
+    // Bouton prédiction (CORRIGÉ — ligne dupliquée supprimée)
     const btnPred = document.getElementById("btnPrediction");
     if (btnPred) {
-        btnPred.style.display = (ETAT.mode === 1 && !ETAT.resultat && ETAT.joueur_courant === 1) ? "inline-block" : "none";
+        btnPred.style.display = (ETAT.mode === 1 && !ETAT.resultat && ETAT.joueur_courant === ETAT.joueur_humain) ? "inline-block" : "none";
     }
 
     // Timer IA vs IA
@@ -365,6 +369,7 @@ async function activerSituation() {
 async function changerDepart() {
     const couleur = parseInt(document.getElementById("departSelect").value);
     ETAT.couleur_depart = couleur;
+    ETAT.joueur_humain = couleur;
     await nouvellePartie();
 }
 
@@ -443,7 +448,7 @@ async function situationEffacer() {
     info.innerHTML = "🧠 Mode Situation — plateau effacé";
     info.className = "info";
 
-    const zoneResultat = document.getElementById("resultатAnalyse");
+    const zoneResultat = document.getElementById("resultatAnalyse");
     const zoneContainer = document.getElementById("zoneAnalyseResultat");
     if (zoneResultat) zoneResultat.innerHTML = "";
     if (zoneContainer) zoneContainer.style.display = "none";
@@ -470,7 +475,7 @@ async function situationAnalyser() {
     info.innerHTML = "🧠 Mode Situation — placez vos pions librement";
     info.className = "info";
 
-    const zoneResultat  = document.getElementById("resultатAnalyse");
+    const zoneResultat  = document.getElementById("resultatAnalyse");
     const zoneContainer = document.getElementById("zoneAnalyseResultat");
 
     if (zoneResultat) {
@@ -485,6 +490,9 @@ async function situationAnalyser() {
                 ${data.meilleur_col !== undefined
                     ? `<p class="meilleur-coup">🎯 Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong></p>`
                     : ""}
+                ${data.nb_coups !== undefined && data.nb_coups !== null
+                    ? `<p>📊 Victoire forcée en <strong>${data.nb_coups} coup(s)</strong></p>`
+                    : ""}
             </div>
         `;
         if (zoneContainer) zoneContainer.style.display = "block";
@@ -498,7 +506,7 @@ async function changerProfondeurAnalyse() {
 }
 
 /* ================================================
-   CONSEIL IA
+   CONSEIL IA (SEUILS CORRIGÉS)
 ================================================ */
 
 async function afficherConseil() {
@@ -534,17 +542,28 @@ function afficherScoresColonnes(scores, meilleurCol) {
         const scoreCol    = scores[col];
         const isMeilleur  = col === meilleurCol;
 
+        // SEUILS CORRIGÉS pour SCORE_VICTOIRE = 1_000_000
         let couleur = "#60a5fa";
-        if (scoreCol === undefined)          couleur = "#475569";
-        else if (scoreCol >= 99000000)       couleur = "#22c55e";
-        else if (scoreCol <= -99000000)      couleur = "#ef4444";
-        else if (scoreCol > 500)             couleur = "#86efac";
-        else if (scoreCol < -500)            couleur = "#fca5a5";
+        if (scoreCol === undefined)              couleur = "#475569";
+        else if (scoreCol > SEUIL_VICTOIRE)      couleur = "#22c55e";
+        else if (scoreCol < -SEUIL_VICTOIRE)     couleur = "#ef4444";
+        else if (scoreCol > 500)                 couleur = "#86efac";
+        else if (scoreCol < -500)                couleur = "#fca5a5";
 
-        let texteScore = scoreCol === undefined ? "X" :
-            scoreCol >= 99000000  ? "WIN"  :
-            scoreCol <= -99000000 ? "LOSE" :
-            (scoreCol > 0 ? "+" : "") + scoreCol;
+        let texteScore;
+        if (scoreCol === undefined) {
+            texteScore = "X";
+        } else if (scoreCol > SEUIL_VICTOIRE) {
+            const demi = 1000000 - scoreCol;
+            const coups = Math.ceil((demi + 1) / 2);
+            texteScore = `WIN ${coups}`;
+        } else if (scoreCol < -SEUIL_VICTOIRE) {
+            const demi = 1000000 + scoreCol;
+            const coups = Math.ceil((demi + 1) / 2);
+            texteScore = `LOSE ${coups}`;
+        } else {
+            texteScore = (scoreCol > 0 ? "+" : "") + scoreCol;
+        }
 
         const div = document.createElement("div");
         div.className = "conseil-score-col";
@@ -558,7 +577,7 @@ function afficherScoresColonnes(scores, meilleurCol) {
 
         div.style.position    = "absolute";
         div.style.left        = (rect.left - plateauRect.left + rect.width/2 - 20) + "px";
-        div.style.top         = isMeilleur ? "-65px" : "-30px";
+        div.style.top         = isMeilleur ? "-70px" : "-35px";
         div.style.width       = "40px";
         div.style.zIndex      = "100";
         div.style.pointerEvents = "none";

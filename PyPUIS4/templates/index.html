@@ -53,6 +53,8 @@
                     <option value="4" selected>4</option>
                     <option value="5">5</option>
                     <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
                 </select>
             </div>
 
@@ -71,6 +73,8 @@
                     <option value="4" selected>4</option>
                     <option value="5">5</option>
                     <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
                 </select>
             </div>
 
@@ -119,10 +123,11 @@
                 </select>
                 <label>Profondeur analyse</label>
                 <select id="profondeurAnalyse" onchange="changerProfondeurAnalyse()">
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6" selected>6</option>
-                    <option value="7">7</option>
+                    <option value="6">6 (rapide)</option>
+                    <option value="8">8 (normal)</option>
+                    <option value="10" selected>10 (précis)</option>
+                    <option value="12">12 (profond)</option>
+                    <option value="14">14 (lent)</option>
                 </select>
                 <button class="btn-valider" onclick="situationAnalyser()">
                     🔍 Analyser
@@ -145,8 +150,9 @@
         </div>
 
         <!-- ── Résultat analyse (droite) ── -->
+        <!-- CORRIGÉ : resultatAnalyse en latin (pas cyrillique) -->
         <div id="zoneAnalyseResultat" style="display:none;">
-            <div id="resultатAnalyse"></div>
+            <div id="resultatAnalyse"></div>
         </div>
 
     </div>

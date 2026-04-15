@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 def modele_depuis_data(data):
     """Reconstruit un modèle depuis les données envoyées par le client."""
-    m = Puissance4Modele()
+    m = Puissance4Modele.__new__(Puissance4Modele)
     m.lignes         = data.get("lignes", 9)
     m.colonnes       = data.get("colonnes", 9)
     m.couleur_depart = data.get("couleur_depart", 1)
@@ -30,7 +30,35 @@ def modele_depuis_data(data):
     else:
         m.plateau = m.creer_plateau()
 
+    # Initialiser Zobrist pour la table de transposition
+    m._init_zobrist()
+    m._hash_courant = m._calculer_hash_complet()
+    m.table_transposition = {}
+
     return m
+
+
+def decoder_score(score, joueur_courant):
+    """
+    Décode le score minimax en (gagnant, nb_coups).
+    Convention : SCORE_VICTOIRE = 1_000_000
+    """
+    SV = Puissance4Modele.SCORE_VICTOIRE
+
+    if score > SV // 2:
+        demi = SV - score
+        coups = (demi + 1) // 2
+        gagnant = "rouge" if joueur_courant == Puissance4Modele.ROUGE else "jaune"
+        return gagnant, coups
+
+    if score < -(SV // 2):
+        demi = SV + score
+        coups = (demi + 1) // 2
+        adv = Puissance4Modele.JAUNE if joueur_courant == Puissance4Modele.ROUGE else Puissance4Modele.ROUGE
+        gagnant = "rouge" if adv == Puissance4Modele.ROUGE else "jaune"
+        return gagnant, coups
+
+    return None, None
 
 # =========================================================
 # PAGE PRINCIPALE
@@ -84,7 +112,6 @@ def jouer():
     if lig is None:
         return jsonify({"status": "col_invalide"})
 
-    # Vérifier victoire
     coords = modele.verifier_victoire(modele.joueur_courant)
     if coords is not None:
         gagnant = "rouge" if modele.joueur_courant == modele.ROUGE else "jaune"
@@ -108,10 +135,10 @@ def jouer():
 
 @app.route("/api/ia_step", methods=["POST"])
 def ia_step():
-    data      = request.get_json()
-    modele    = modele_depuis_data(data)
-    ia_type   = data.get("ia_type", "minimax")
-    profondeur = min(int(data.get("profondeur", 7)), 7)
+    data       = request.get_json()
+    modele     = modele_depuis_data(data)
+    ia_type    = data.get("ia_type", "minimax")
+    profondeur = min(int(data.get("profondeur", 7)), 12)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
@@ -123,10 +150,10 @@ def ia_step():
         if not scores:
             modele.definir_resultat("nul")
             return jsonify({"status": "nul"})
-        best_score  = max(scores.values())
-        best_cols   = [c for c, s in scores.items() if s == best_score]
-        centre      = modele.colonnes // 2
-        col         = min(best_cols, key=lambda c: abs(c - centre))
+        best_score = max(scores.values())
+        best_cols  = [c for c, s in scores.items() if s == best_score]
+        centre     = modele.colonnes // 2
+        col        = min(best_cols, key=lambda c: abs(c - centre))
 
     modele.jouer_coup(col)
 
@@ -175,7 +202,7 @@ def annuler():
 def conseil():
     data       = request.get_json()
     modele     = modele_depuis_data(data)
-    profondeur = min(int(data.get("profondeur", 7)), 7)
+    profondeur = min(int(data.get("profondeur", 7)), 12)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
@@ -189,11 +216,21 @@ def conseil():
     centre       = modele.colonnes // 2
     meilleur_col = min(best_cols, key=lambda c: abs(c - centre))
 
-    if best_score >= 99000000:   verdict = "victoire"
-    elif best_score <= -99000000: verdict = "defaite"
-    elif best_score > 1000:       verdict = "avantage"
-    elif best_score < -1000:      verdict = "desavantage"
-    else:                         verdict = "equilibre"
+    gagnant, nb_coups = decoder_score(best_score, modele.joueur_courant)
+
+    if gagnant is not None:
+        nom_g = "Rouge" if gagnant == "rouge" else "Jaune"
+        nom_j = "Rouge" if modele.joueur_courant == modele.ROUGE else "Jaune"
+        if gagnant == ("rouge" if modele.joueur_courant == modele.ROUGE else "jaune"):
+            verdict = "victoire"
+        else:
+            verdict = "defaite"
+    elif best_score > 500:
+        verdict = "avantage"
+    elif best_score < -500:
+        verdict = "desavantage"
+    else:
+        verdict = "equilibre"
 
     return jsonify({
         "status":       "ok",
@@ -201,6 +238,7 @@ def conseil():
         "score":        best_score,
         "verdict":      verdict,
         "scores":       scores,
+        "nb_coups":     nb_coups,
     })
 
 # =========================================================
@@ -229,7 +267,7 @@ def situation_placer():
     })
 
 # =========================================================
-# MODE SITUATION — ANALYSER
+# MODE SITUATION — ANALYSER (CORRIGÉ)
 # =========================================================
 
 @app.route("/api/situation/analyser", methods=["POST"])
@@ -237,7 +275,7 @@ def situation_analyser():
     data           = request.get_json() or {}
     modele         = modele_depuis_data(data)
     joueur_analyse = int(data.get("joueur_analyse", modele.ROUGE))
-    profondeur     = max(int(data.get("profondeur", 6)), 7)
+    profondeur     = max(int(data.get("profondeur", 12)), 8)
 
     modele.joueur_courant = joueur_analyse
 
@@ -258,16 +296,18 @@ def situation_analyser():
     nom_joueur   = "Rouge" if joueur_analyse == modele.ROUGE else "Jaune"
     emoji        = "🔴"    if joueur_analyse == modele.ROUGE else "🟡"
 
-    if best_score >= 99000000:
-        nb_coups = (100000000 - best_score) + 1
-        message  = f"{emoji} {nom_joueur} gagne en {nb_coups} coup(s) ! Colonne {meilleur_col + 1}."
-        gagnant  = "rouge" if joueur_analyse == modele.ROUGE else "jaune"
-    elif best_score <= -99000000:
-        adv      = "Jaune" if joueur_analyse == modele.ROUGE else "Rouge"
-        emoji_adv = "🟡"   if joueur_analyse == modele.ROUGE else "🔴"
-        nb_coups = abs(best_score + 100000000) + 1
-        message  = f"{emoji_adv} {adv} gagne en {nb_coups} coup(s). Perdu pour {nom_joueur}."
-        gagnant  = "jaune" if joueur_analyse == modele.ROUGE else "rouge"
+    gagnant, nb_coups = decoder_score(best_score, joueur_analyse)
+
+    if gagnant is not None:
+        nom_g   = "Rouge" if gagnant == "rouge" else "Jaune"
+        emoji_g = "🔴"    if gagnant == "rouge" else "🟡"
+
+        if gagnant == ("rouge" if joueur_analyse == modele.ROUGE else "jaune"):
+            # Le joueur qui joue gagne
+            message = f"{emoji_g} {nom_g} gagne en {nb_coups} coup(s) ! Meilleur coup : colonne {meilleur_col + 1}."
+        else:
+            # Le joueur qui joue perd
+            message = f"{emoji_g} {nom_g} gagne en {nb_coups} coup(s). Perdu pour {nom_joueur}."
     else:
         message = f"⚖️ Équilibré. Meilleur coup : colonne {meilleur_col + 1}. (score={best_score})"
         gagnant = "equilibre"
@@ -277,7 +317,8 @@ def situation_analyser():
         "meilleur_col": meilleur_col,
         "score":        best_score,
         "message":      message,
-        "scores":       scores,
+        "scores":       {str(k): v for k, v in scores.items()},
+        "nb_coups":     nb_coups,
     })
 
 # =========================================================
