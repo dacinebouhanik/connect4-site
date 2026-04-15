@@ -141,10 +141,16 @@ function mettreAJourUI() {
         }
     }
 
-    // Bouton prédiction (CORRIGÉ — ligne dupliquée supprimée)
+    // Bouton prédiction — visible dans tous les modes si partie pas finie
     const btnPred = document.getElementById("btnPrediction");
     if (btnPred) {
-        btnPred.style.display = (ETAT.mode === 1 && !ETAT.resultat && ETAT.joueur_courant === ETAT.joueur_humain) ? "inline-block" : "none";
+        btnPred.style.display = (!ETAT.resultat && ETAT.mode !== 3) ? "inline-block" : "none";
+    }
+
+    // Bouton analyser — visible dans tous les modes si partie pas finie
+    const btnAnalyse = document.getElementById("btnAnalyser");
+    if (btnAnalyse) {
+        btnAnalyse.style.display = (!ETAT.resultat && ETAT.mode !== 3) ? "inline-block" : "none";
     }
 
     // Timer IA vs IA
@@ -404,6 +410,76 @@ function appliquerDelaiIA() {
 }
 
 /* ================================================
+   CHARGER DEPUIS FICHIER (tous les modes)
+================================================ */
+
+function chargerDepuisFichier() {
+    const input = document.getElementById("chargerFichier");
+    if (!input.files || input.files.length === 0) return;
+
+    const fichier = input.files[0];
+    const nomFichier = fichier.name.replace(/\.[^.]+$/, "");
+    const coups = nomFichier.replace(/[^0-9]/g, "");
+
+    if (coups.length === 0) {
+        const info = document.getElementById("info");
+        if (info) { info.innerHTML = "❌ Pas de chiffres dans le nom du fichier"; info.className = "info"; }
+        input.value = "";
+        return;
+    }
+
+    // Reconstruire le plateau
+    const lignes = ETAT.lignes;
+    const colonnes = ETAT.colonnes;
+    let plateau = Array.from({ length: lignes }, () => new Array(colonnes).fill(0));
+    let joueur = ETAT.couleur_depart || 1;
+    let nbCoups = 0;
+
+    for (const ch of coups) {
+        const col = parseInt(ch) - 1;
+        if (col < 0 || col >= colonnes) continue;
+
+        let placed = false;
+        for (let row = lignes - 1; row >= 0; row--) {
+            if (plateau[row][col] === 0) {
+                plateau[row][col] = joueur;
+                placed = true;
+                break;
+            }
+        }
+        if (placed) {
+            nbCoups++;
+            joueur = joueur === 1 ? 2 : 1;
+        }
+    }
+
+    // Appliquer
+    ETAT.plateau = plateau;
+    ETAT.joueur_courant = joueur;
+    ETAT.resultat = null;
+    ETAT.historique = [];
+    ETAT.partie_sauvegardee = false;
+
+    // Garder le mode actuel (ne pas basculer)
+
+    const nomJoueur = joueur === 1 ? "Rouge" : "Jaune";
+    const emoji = joueur === 1 ? "🔴" : "🟡";
+
+    const info = document.getElementById("info");
+    if (info) {
+        info.innerHTML = `📂 "${fichier.name}" chargé (${nbCoups} coups) — ${emoji} ${nomJoueur} joue`;
+        info.className = "info";
+    }
+
+    // Mettre à jour le sélecteur joueur analyse
+    const joueurSelect = document.getElementById("joueurAnalyse");
+    if (joueurSelect) joueurSelect.value = String(joueur);
+
+    input.value = "";
+    mettreAJourUI();
+}
+
+/* ================================================
    MODE SITUATION
 ================================================ */
 
@@ -628,6 +704,66 @@ async function situationAnalyser() {
 
 async function changerProfondeurAnalyse() {
     // Rien à faire côté serveur, juste côté client
+}
+
+/* ================================================
+   ANALYSER DEPUIS LE JEU (tous les modes)
+================================================ */
+
+async function analyserDepuisJeu() {
+    if (ETAT.resultat) return;
+
+    const profondeur = parseInt(prompt("Choisir la profondeur d'analyse :", "10"));
+    if (!profondeur || profondeur < 2) return;
+
+    const joueur_analyse = ETAT.joueur_courant;
+
+    const info = document.getElementById("info");
+    if (info) {
+        info.innerHTML = "🔍 Analyse en cours...";
+        info.className = "info ia-thinking";
+    }
+
+    const res = await fetch("/api/situation/analyser", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...getEtatServeur(), joueur_analyse, profondeur })
+    });
+    const data = await res.json();
+
+    // Restaurer le message de tour
+    const emoji = ETAT.joueur_courant === 1 ? "🔴" : "🟡";
+    const nom = ETAT.joueur_courant === 1 ? "Rouge" : "Jaune";
+    if (info) {
+        info.innerHTML = `${emoji} Tour de ${nom}`;
+        info.className = "info";
+    }
+
+    // Afficher le résultat à droite
+    const zoneResultat = document.getElementById("resultatAnalyse");
+    const zoneContainer = document.getElementById("zoneAnalyseResultat");
+
+    if (zoneResultat) {
+        let couleurResultat = "#facc15";
+        if (data.gagnant === "rouge") couleurResultat = "#ef4444";
+        if (data.gagnant === "jaune") couleurResultat = "#facc15";
+        if (data.gagnant === "equilibre") couleurResultat = "#60a5fa";
+
+        zoneResultat.innerHTML = `
+            <div class="analyse-result" style="border-color: ${couleurResultat}">
+                <p style="font-size:18px; font-weight:bold;">${data.message}</p>
+                ${data.meilleur_col !== undefined
+                    ? `<p class="meilleur-coup">🎯 Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong></p>`
+                    : ""}
+                ${data.nb_coups !== undefined && data.nb_coups !== null
+                    ? `<p>📊 Victoire forcée en <strong>${data.nb_coups} coup(s)</strong></p>`
+                    : ""}
+            </div>
+        `;
+        if (zoneContainer) zoneContainer.style.display = "block";
+    }
+
+    if (data.meilleur_col !== undefined) surlignerColonne(data.meilleur_col);
 }
 
 /* ================================================
