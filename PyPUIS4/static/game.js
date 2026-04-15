@@ -94,6 +94,14 @@ function mettreAJourUI() {
     const zoneSituation = document.getElementById("zoneSituation");
     if (zoneSituation) zoneSituation.style.display = ETAT.mode === 3 ? "block" : "none";
 
+    // Cacher le résultat d'analyse quand on quitte le mode situation
+    if (ETAT.mode !== 3) {
+        const zoneResultat = document.getElementById("resultatAnalyse");
+        const zoneContainer = document.getElementById("zoneAnalyseResultat");
+        if (zoneResultat) zoneResultat.innerHTML = "";
+        if (zoneContainer) zoneContainer.style.display = "none";
+    }
+
     // Profondeurs
     const profRouge = document.getElementById("profondeurRouge");
     const profJaune = document.getElementById("profondeurJaune");
