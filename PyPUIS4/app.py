@@ -138,7 +138,7 @@ def ia_step():
     data       = request.get_json()
     modele     = modele_depuis_data(data)
     ia_type    = data.get("ia_type", "minimax")
-    profondeur = min(int(data.get("profondeur", 7)), 12)
+    profondeur = min(int(data.get("profondeur", 7)), 10)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
@@ -202,7 +202,7 @@ def annuler():
 def conseil():
     data       = request.get_json()
     modele     = modele_depuis_data(data)
-    profondeur = min(int(data.get("profondeur", 7)), 12)
+    profondeur = min(int(data.get("profondeur", 7)), 10)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
