@@ -28,6 +28,9 @@ const ETAT = {
     replay_actif:   false,
     replay_coups:   [],
     replay_index:   0,
+
+    // Undo/Redo
+    redo_pile:      [],
 };
 
 // Seuil pour détecter victoire/défaite (doit matcher modele.py)
@@ -230,6 +233,7 @@ async function jouer(col) {
     if (ETAT.en_train || ETAT.resultat || ETAT.mode === 0 || ETAT.mode === 3) return;
 
     ETAT.en_train = true;
+    ETAT.redo_pile = [];  // Nouveau coup = vider la pile refaire
     desactiverPlateau();
     cacherConseil();
 
@@ -322,16 +326,22 @@ function stopperTimerIA() {
 }
 
 /* ================================================
-   ANNULER COUP
+   ANNULER / REFAIRE
 ================================================ */
 
 async function annulerCoup() {
     if (ETAT.en_train) return;
+    if (!ETAT.historique || ETAT.historique.length === 0) return;
+
     stopperTimerIA();
     ETAT.en_train = false;
     cacherConseil();
 
-    const res  = await fetch("/api/annuler", {
+    // Sauvegarder le coup annulé dans la pile redo
+    const dernierCoup = ETAT.historique[ETAT.historique.length - 1];
+    ETAT.redo_pile.push(dernierCoup);
+
+    const res = await fetch("/api/annuler", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify(getEtatServeur())
@@ -342,6 +352,35 @@ async function annulerCoup() {
     ETAT.joueur_courant = data.joueur_courant;
     ETAT.historique     = data.historique;
     ETAT.resultat       = data.resultat;
+
+    mettreAJourUI();
+}
+
+async function refaireCoup() {
+    if (ETAT.en_train) return;
+    if (!ETAT.redo_pile || ETAT.redo_pile.length === 0) return;
+    if (ETAT.resultat) return;
+
+    stopperTimerIA();
+    cacherConseil();
+
+    // Récupérer le coup à refaire
+    const coup = ETAT.redo_pile.pop();
+    const col = coup[1];  // [lig, col, joueur]
+
+    const res = await fetch("/api/jouer", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ ...getEtatServeur(), col })
+    });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+        ETAT.plateau        = data.plateau;
+        ETAT.joueur_courant = data.joueur_courant;
+        ETAT.historique     = data.historique;
+        ETAT.resultat       = data.resultat;
+    }
 
     mettreAJourUI();
 }
