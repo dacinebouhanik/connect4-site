@@ -138,7 +138,7 @@ def ia_step():
     data       = request.get_json()
     modele     = modele_depuis_data(data)
     ia_type    = data.get("ia_type", "minimax")
-    profondeur = min(int(data.get("profondeur", 7)), 12)
+    profondeur = min(int(data.get("profondeur", 7)), 10)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
@@ -146,7 +146,7 @@ def ia_step():
     if ia_type == "aleatoire":
         col = modele.coup_aleatoire()
     else:
-        scores = modele.calculer_scores_minimax(profondeur)
+        scores = modele.calculer_scores_minimax(profondeur, temps_max=15.0)
         if not scores:
             modele.definir_resultat("nul")
             return jsonify({"status": "nul"})
@@ -202,12 +202,12 @@ def annuler():
 def conseil():
     data       = request.get_json()
     modele     = modele_depuis_data(data)
-    profondeur = min(int(data.get("profondeur", 7)), 12)
+    profondeur = min(int(data.get("profondeur", 7)), 10)
 
     if modele.resultat is not None:
         return jsonify({"status": "fin"})
 
-    scores = modele.calculer_scores_minimax(profondeur)
+    scores = modele.calculer_scores_minimax(profondeur, temps_max=15.0)
     if not scores:
         return jsonify({"status": "erreur"})
 
@@ -286,7 +286,7 @@ def situation_analyser():
     if modele.plateau_plein():
         return jsonify({"gagnant": "nul", "message": "🤝 Plateau plein !"})
 
-    scores = modele.calculer_scores_minimax(profondeur)
+    scores = modele.calculer_scores_minimax(profondeur, temps_max=20.0)
     if not scores:
         return jsonify({"gagnant": "inconnu", "message": "❓ Impossible d'analyser."})
 
