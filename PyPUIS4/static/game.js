@@ -766,23 +766,76 @@ async function analyserDepuisJeu() {
         };
 
         document.getElementById("btnLancerAnalyse").onclick = async () => {
-            const profondeur = parseInt(document.getElementById("sliderProfondeur").value);
+            const profondeurMax = parseInt(document.getElementById("sliderProfondeur").value);
             overlay.remove();
 
             const joueur_analyse = ETAT.joueur_courant;
-
             const info = document.getElementById("info");
+
+            // Créer la barre de progression
+            const barreDiv = document.createElement("div");
+            barreDiv.id = "barreProgression";
+            barreDiv.style.cssText = "width:80%;max-width:500px;margin:10px auto;text-align:center;";
+            barreDiv.innerHTML = `
+                <div style="background:#1e293b;border-radius:12px;overflow:hidden;height:28px;position:relative;box-shadow:inset 0 2px 6px rgba(0,0,0,0.5);">
+                    <div id="barreFill" style="height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#22c55e);border-radius:12px;transition:width 0.3s ease;"></div>
+                    <span id="barreTexte" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.5);">0%</span>
+                </div>
+                <p id="barreDetail" style="font-size:12px;opacity:0.7;margin-top:6px;">Préparation...</p>
+            `;
+
+            const plateauDiv = document.getElementById("plateau");
+            plateauDiv.parentNode.insertBefore(barreDiv, plateauDiv);
+
             if (info) {
                 info.innerHTML = "🔍 Analyse en cours...";
                 info.className = "info ia-thinking";
             }
 
-            const res = await fetch("/api/situation/analyser", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...getEtatServeur(), joueur_analyse, profondeur })
-            });
-            const data = await res.json();
+            // Appels progressifs : profondeur 2, 4, 6... jusqu'à profondeurMax
+            const etapes = [];
+            for (let d = 2; d <= profondeurMax; d += 2) etapes.push(d);
+            if (etapes.length === 0) etapes.push(profondeurMax);
+
+            let dernierResultat = null;
+
+            for (let i = 0; i < etapes.length; i++) {
+                const d = etapes[i];
+                const pct = Math.round(((i + 1) / etapes.length) * 100);
+
+                const barreDetail = document.getElementById("barreDetail");
+                if (barreDetail) barreDetail.textContent = `Profondeur ${d}/${profondeurMax}...`;
+
+                const res = await fetch("/api/situation/analyser", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...getEtatServeur(), joueur_analyse, profondeur: d })
+                });
+                dernierResultat = await res.json();
+
+                // Mettre à jour la barre
+                const barreFill = document.getElementById("barreFill");
+                const barreTexte = document.getElementById("barreTexte");
+                if (barreFill) barreFill.style.width = pct + "%";
+                if (barreTexte) barreTexte.textContent = pct + "%";
+
+                // Si victoire forcée trouvée, on arrête
+                if (dernierResultat.nb_coups !== undefined && dernierResultat.nb_coups !== null) {
+                    if (barreFill) barreFill.style.width = "100%";
+                    if (barreTexte) barreTexte.textContent = "100% — Victoire trouvée !";
+                    if (barreFill) barreFill.style.background = "linear-gradient(90deg,#22c55e,#16a34a)";
+                    break;
+                }
+            }
+
+            // Petit délai pour voir le 100%
+            await pause(500);
+
+            // Supprimer la barre
+            const barre = document.getElementById("barreProgression");
+            if (barre) barre.remove();
+
+            const data = dernierResultat;
 
             const emoji = ETAT.joueur_courant === 1 ? "🔴" : "🟡";
             const nom = ETAT.joueur_courant === 1 ? "Rouge" : "Jaune";
