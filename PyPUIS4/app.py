@@ -298,19 +298,36 @@ def situation_analyser():
 
     gagnant, nb_coups = decoder_score(best_score, joueur_analyse)
 
+    adv_nom = "Jaune" if joueur_analyse == modele.ROUGE else "Rouge"
+    adv_emoji = "🟡" if joueur_analyse == modele.ROUGE else "🔴"
+
     if gagnant is not None:
         nom_g   = "Rouge" if gagnant == "rouge" else "Jaune"
         emoji_g = "🔴"    if gagnant == "rouge" else "🟡"
 
         if gagnant == ("rouge" if joueur_analyse == modele.ROUGE else "jaune"):
-            # Le joueur qui joue gagne
             message = f"{emoji_g} {nom_g} gagne en {nb_coups} coup(s) ! Meilleur coup : colonne {meilleur_col + 1}."
         else:
-            # Le joueur qui joue perd
             message = f"{emoji_g} {nom_g} gagne en {nb_coups} coup(s). Perdu pour {nom_joueur}."
-    else:
-        message = f"⚖️ Équilibré. Meilleur coup : colonne {meilleur_col + 1}. (score={best_score})"
+    elif best_score > 200:
+        message = f"{emoji} Avantage {nom_joueur}. Meilleur coup : colonne {meilleur_col + 1}. (score={best_score})"
+        gagnant = "rouge" if joueur_analyse == modele.ROUGE else "jaune"
+    elif best_score < -200:
+        message = f"{adv_emoji} Avantage {adv_nom}. Meilleur coup : colonne {meilleur_col + 1}. (score={best_score})"
+        gagnant = "rouge" if joueur_analyse == modele.JAUNE else "jaune"
+    elif best_score > 50:
+        message = f"{emoji} Léger avantage {nom_joueur}. Meilleur coup : colonne {meilleur_col + 1}."
         gagnant = "equilibre"
+    elif best_score < -50:
+        message = f"{adv_emoji} Léger avantage {adv_nom}. Meilleur coup : colonne {meilleur_col + 1}."
+        gagnant = "equilibre"
+    else:
+        message = f"⚖️ Position équilibrée. Meilleur coup : colonne {meilleur_col + 1}."
+        gagnant = "equilibre"
+
+    # Ajouter conseil profondeur si pas de victoire trouvée
+    if nb_coups is None:
+        message += f"\n💡 Essayez une profondeur plus élevée pour détecter une victoire forcée."
 
     return jsonify({
         "gagnant":      gagnant,

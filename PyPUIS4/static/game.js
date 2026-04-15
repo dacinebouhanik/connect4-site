@@ -713,57 +713,103 @@ async function changerProfondeurAnalyse() {
 async function analyserDepuisJeu() {
     if (ETAT.resultat) return;
 
-    const profondeur = parseInt(prompt("Choisir la profondeur d'analyse :", "10"));
-    if (!profondeur || profondeur < 2) return;
+    // Afficher la modale de profondeur
+    return new Promise((resolve) => {
+        // Créer la modale
+        const overlay = document.createElement("div");
+        overlay.id = "modalProfondeur";
+        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;display:flex;align-items:center;justify-content:center;";
 
-    const joueur_analyse = ETAT.joueur_courant;
-
-    const info = document.getElementById("info");
-    if (info) {
-        info.innerHTML = "🔍 Analyse en cours...";
-        info.className = "info ia-thinking";
-    }
-
-    const res = await fetch("/api/situation/analyser", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...getEtatServeur(), joueur_analyse, profondeur })
-    });
-    const data = await res.json();
-
-    // Restaurer le message de tour
-    const emoji = ETAT.joueur_courant === 1 ? "🔴" : "🟡";
-    const nom = ETAT.joueur_courant === 1 ? "Rouge" : "Jaune";
-    if (info) {
-        info.innerHTML = `${emoji} Tour de ${nom}`;
-        info.className = "info";
-    }
-
-    // Afficher le résultat à droite
-    const zoneResultat = document.getElementById("resultatAnalyse");
-    const zoneContainer = document.getElementById("zoneAnalyseResultat");
-
-    if (zoneResultat) {
-        let couleurResultat = "#facc15";
-        if (data.gagnant === "rouge") couleurResultat = "#ef4444";
-        if (data.gagnant === "jaune") couleurResultat = "#facc15";
-        if (data.gagnant === "equilibre") couleurResultat = "#60a5fa";
-
-        zoneResultat.innerHTML = `
-            <div class="analyse-result" style="border-color: ${couleurResultat}">
-                <p style="font-size:18px; font-weight:bold;">${data.message}</p>
-                ${data.meilleur_col !== undefined
-                    ? `<p class="meilleur-coup">🎯 Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong></p>`
-                    : ""}
-                ${data.nb_coups !== undefined && data.nb_coups !== null
-                    ? `<p>📊 Victoire forcée en <strong>${data.nb_coups} coup(s)</strong></p>`
-                    : ""}
+        overlay.innerHTML = `
+            <div style="background:linear-gradient(160deg,#020617,#0f172a);padding:30px 40px;border-radius:20px;box-shadow:0 30px 60px rgba(0,0,0,0.9);text-align:center;min-width:320px;">
+                <h3 style="margin:0 0 20px 0;font-size:20px;">🔍 Profondeur d'analyse</h3>
+                <div style="display:flex;align-items:center;gap:15px;justify-content:center;margin-bottom:20px;">
+                    <input type="range" id="sliderProfondeur" min="4" max="14" step="2" value="10"
+                        style="width:200px;accent-color:#3b82f6;cursor:pointer;"
+                        oninput="document.getElementById('valProfondeur').textContent=this.value">
+                    <span id="valProfondeur" style="font-size:28px;font-weight:bold;color:#3b82f6;min-width:35px;">10</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0 10px;margin-bottom:20px;font-size:11px;opacity:0.5;">
+                    <span>Rapide</span>
+                    <span>Précis</span>
+                    <span>Profond</span>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                    <button id="btnLancerAnalyse" style="padding:12px 30px;border-radius:10px;background:linear-gradient(145deg,#3b82f6,#2563eb);color:white;font-weight:bold;border:none;cursor:pointer;font-size:15px;">
+                        🔍 Analyser
+                    </button>
+                    <button id="btnAnnulerAnalyse" style="padding:12px 20px;border-radius:10px;background:#1e293b;color:white;border:none;cursor:pointer;font-size:15px;">
+                        Annuler
+                    </button>
+                </div>
             </div>
         `;
-        if (zoneContainer) zoneContainer.style.display = "block";
-    }
 
-    if (data.meilleur_col !== undefined) surlignerColonne(data.meilleur_col);
+        document.body.appendChild(overlay);
+
+        document.getElementById("btnAnnulerAnalyse").onclick = () => {
+            overlay.remove();
+            resolve();
+        };
+
+        overlay.onclick = (e) => {
+            if (e.target === overlay) { overlay.remove(); resolve(); }
+        };
+
+        document.getElementById("btnLancerAnalyse").onclick = async () => {
+            const profondeur = parseInt(document.getElementById("sliderProfondeur").value);
+            overlay.remove();
+
+            const joueur_analyse = ETAT.joueur_courant;
+
+            const info = document.getElementById("info");
+            if (info) {
+                info.innerHTML = "🔍 Analyse en cours...";
+                info.className = "info ia-thinking";
+            }
+
+            const res = await fetch("/api/situation/analyser", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...getEtatServeur(), joueur_analyse, profondeur })
+            });
+            const data = await res.json();
+
+            const emoji = ETAT.joueur_courant === 1 ? "🔴" : "🟡";
+            const nom = ETAT.joueur_courant === 1 ? "Rouge" : "Jaune";
+            if (info) {
+                info.innerHTML = `${emoji} Tour de ${nom}`;
+                info.className = "info";
+            }
+
+            const zoneResultat = document.getElementById("resultatAnalyse");
+            const zoneContainer = document.getElementById("zoneAnalyseResultat");
+
+            if (zoneResultat) {
+                let couleurResultat = "#facc15";
+                if (data.gagnant === "rouge") couleurResultat = "#ef4444";
+                if (data.gagnant === "jaune") couleurResultat = "#facc15";
+                if (data.gagnant === "equilibre") couleurResultat = "#60a5fa";
+
+                zoneResultat.innerHTML = `
+                    <div class="analyse-result" style="border-color: ${couleurResultat}">
+                        <p style="font-size:18px; font-weight:bold;">${data.message}</p>
+                        ${data.meilleur_col !== undefined
+                            ? `<p class="meilleur-coup">🎯 Meilleur coup : colonne <strong>${data.meilleur_col + 1}</strong></p>`
+                            : ""}
+                        ${data.nb_coups !== undefined && data.nb_coups !== null
+                            ? `<p>📊 Victoire forcée en <strong>${data.nb_coups} coup(s)</strong></p>`
+                            : ""}
+                    </div>
+                `;
+                if (zoneContainer) zoneContainer.style.display = "block";
+            }
+
+            if (data.meilleur_col !== undefined) surlignerColonne(data.meilleur_col);
+
+            resolve();
+        };
+    });
 }
 
 /* ================================================
