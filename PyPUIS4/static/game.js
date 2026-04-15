@@ -384,7 +384,12 @@ async function changerDepart() {
     const couleur = parseInt(document.getElementById("departSelect").value);
     ETAT.couleur_depart = couleur;
     ETAT.joueur_humain = couleur;
-    await nouvellePartie();
+
+    // Ne relancer une nouvelle partie que si le plateau est vide
+    const estVide = ETAT.plateau.every(row => row.every(cell => cell === 0));
+    if (estVide) {
+        await nouvellePartie();
+    }
 }
 
 /* ================================================
