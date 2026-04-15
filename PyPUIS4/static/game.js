@@ -407,13 +407,13 @@ async function importerSequence() {
     if (!input.files || input.files.length === 0) return;
 
     const fichier = input.files[0];
-    const texte = await fichier.text();
 
-    // Nettoyer : garder uniquement les chiffres
-    const coups = texte.trim().replace(/[^0-9]/g, "");
+    // La séquence est dans le NOM du fichier (ex: 554433221.txt)
+    const nomFichier = fichier.name.replace(/\.[^.]+$/, ""); // enlever l'extension
+    const coups = nomFichier.replace(/[^0-9]/g, "");
 
     if (coups.length === 0) {
-        if (infoDiv) infoDiv.innerHTML = "❌ Fichier vide ou invalide";
+        if (infoDiv) infoDiv.innerHTML = "❌ Pas de chiffres dans le nom du fichier";
         return;
     }
 
@@ -428,7 +428,6 @@ async function importerSequence() {
         const col = parseInt(ch) - 1;  // fichier = 1-indexé, plateau = 0-indexé
         if (col < 0 || col >= colonnes) continue;
 
-        // Trouver la ligne libre (gravité)
         let placed = false;
         for (let row = lignes - 1; row >= 0; row--) {
             if (plateau[row][col] === 0) {
@@ -444,32 +443,27 @@ async function importerSequence() {
         }
     }
 
-    // Mettre à jour l'état
     ETAT.plateau = plateau;
     ETAT.joueur_courant = joueur;
     ETAT.resultat = null;
 
-    // Afficher
     afficherPlateauEditeur(ETAT.plateau);
 
-    // Mettre à jour le sélecteur "Joueur qui joue"
     const joueurSelect = document.getElementById("joueurAnalyse");
     if (joueurSelect) joueurSelect.value = String(joueur);
 
-    // Info
     const nomJoueur = joueur === 1 ? "Rouge" : "Jaune";
     const emoji = joueur === 1 ? "🔴" : "🟡";
     if (infoDiv) {
-        infoDiv.innerHTML = `✅ ${nbCoups} coups chargés — ${emoji} ${nomJoueur} joue`;
+        infoDiv.innerHTML = `✅ ${nbCoups} coups chargés depuis "${fichier.name}" — ${emoji} ${nomJoueur} joue`;
     }
 
     const info = document.getElementById("info");
     if (info) {
-        info.innerHTML = `📂 Séquence importée (${nbCoups} coups) — ${emoji} ${nomJoueur} joue`;
+        info.innerHTML = `📂 Séquence "${nomFichier}" (${nbCoups} coups) — ${emoji} ${nomJoueur} joue`;
         info.className = "info";
     }
 
-    // Reset le champ fichier pour pouvoir réimporter
     input.value = "";
 }
 
