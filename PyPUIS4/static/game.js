@@ -514,6 +514,46 @@ function mettreAJourBoutonsPion(pion) {
     if (btnEffacer) btnEffacer.classList.toggle("actif", pion === 0);
 }
 
+/* ── Continuer la partie depuis la position actuelle ── */
+async function continuerPartie(mode) {
+    // Récupérer qui joue depuis le sélecteur d'analyse
+    const joueurSelect = document.getElementById("joueurAnalyse");
+    const joueur = joueurSelect ? parseInt(joueurSelect.value) : ETAT.joueur_courant;
+
+    // Garder le plateau actuel, changer le mode
+    ETAT.joueur_courant = joueur;
+    ETAT.mode = mode;
+    ETAT.resultat = null;
+    ETAT.en_train = false;
+    ETAT.partie_sauvegardee = false;
+
+    // Reconstruire l'historique depuis le plateau actuel
+    // (on ne peut pas le reconstituer exactement, mais on vide pour repartir propre)
+    ETAT.historique = [];
+
+    // En mode Humain vs IA, le joueur humain est celui qui joue en premier
+    if (mode === 1) {
+        ETAT.joueur_humain = joueur;
+    }
+
+    // Mettre à jour le sélecteur de mode
+    const modeSelect = document.getElementById("modeSelect");
+    if (modeSelect) modeSelect.value = String(mode);
+
+    cacherConseil();
+    mettreAJourUI();
+
+    const nomMode = mode === 0 ? "IA vs IA" : mode === 1 ? "Humain vs IA" : "2 Joueurs";
+    const emoji = joueur === 1 ? "🔴" : "🟡";
+    const nomJoueur = joueur === 1 ? "Rouge" : "Jaune";
+
+    const info = document.getElementById("info");
+    if (info) {
+        info.innerHTML = `▶ Partie lancée en ${nomMode} — ${emoji} ${nomJoueur} commence`;
+        info.className = "info";
+    }
+}
+
 async function situationEffacer() {
     ETAT.plateau = Array.from({ length: ETAT.lignes }, () => new Array(ETAT.colonnes).fill(0));
     afficherPlateauEditeur(ETAT.plateau);
