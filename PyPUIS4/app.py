@@ -310,24 +310,20 @@ def situation_analyser():
         else:
             message = f"{emoji_g} {nom_g} gagne en {nb_coups} coup(s). Perdu pour {nom_joueur}."
     elif best_score > 200:
-        message = f"{emoji} Avantage {nom_joueur}. Meilleur coup : colonne {meilleur_col + 1}. (score={best_score})"
+        message = f"{emoji} Avantage {nom_joueur}. {nom_joueur} doit jouer colonne {meilleur_col + 1}."
         gagnant = "rouge" if joueur_analyse == modele.ROUGE else "jaune"
     elif best_score < -200:
-        message = f"{adv_emoji} Avantage {adv_nom}. Meilleur coup : colonne {meilleur_col + 1}. (score={best_score})"
+        message = f"{adv_emoji} Avantage {adv_nom}. {nom_joueur} doit jouer colonne {meilleur_col + 1} pour résister."
         gagnant = "rouge" if joueur_analyse == modele.JAUNE else "jaune"
     elif best_score > 50:
-        message = f"{emoji} Léger avantage {nom_joueur}. Meilleur coup : colonne {meilleur_col + 1}."
+        message = f"{emoji} Léger avantage {nom_joueur}. {nom_joueur} doit jouer colonne {meilleur_col + 1}."
         gagnant = "equilibre"
     elif best_score < -50:
-        message = f"{adv_emoji} Léger avantage {adv_nom}. Meilleur coup : colonne {meilleur_col + 1}."
+        message = f"{adv_emoji} Léger avantage {adv_nom}. {nom_joueur} doit jouer colonne {meilleur_col + 1} pour résister."
         gagnant = "equilibre"
     else:
-        message = f"⚖️ Position équilibrée. Meilleur coup : colonne {meilleur_col + 1}."
+        message = f"⚖️ Position équilibrée. {nom_joueur} doit jouer colonne {meilleur_col + 1}."
         gagnant = "equilibre"
-
-    # Ajouter conseil profondeur si pas de victoire trouvée
-    if nb_coups is None:
-        message += f"\n💡 Essayez une profondeur plus élevée pour détecter une victoire forcée."
 
     return jsonify({
         "gagnant":      gagnant,
