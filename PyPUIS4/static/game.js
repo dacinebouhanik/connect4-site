@@ -437,12 +437,13 @@ function chargerDepuisFichier() {
         return;
     }
 
-    // Reconstruire le plateau
+    // Reconstruire le plateau ET l'historique
     const lignes = ETAT.lignes;
     const colonnes = ETAT.colonnes;
     let plateau = Array.from({ length: lignes }, () => new Array(colonnes).fill(0));
     let joueur = ETAT.couleur_depart || 1;
     let nbCoups = 0;
+    let historique = [];
 
     for (const ch of coups) {
         const col = parseInt(ch) - 1;
@@ -452,6 +453,7 @@ function chargerDepuisFichier() {
         for (let row = lignes - 1; row >= 0; row--) {
             if (plateau[row][col] === 0) {
                 plateau[row][col] = joueur;
+                historique.push([row, col, joueur]);
                 placed = true;
                 break;
             }
@@ -466,7 +468,7 @@ function chargerDepuisFichier() {
     ETAT.plateau = plateau;
     ETAT.joueur_courant = joueur;
     ETAT.resultat = null;
-    ETAT.historique = [];
+    ETAT.historique = historique;
     ETAT.partie_sauvegardee = false;
 
     // Garder le mode actuel (ne pas basculer)
@@ -516,6 +518,7 @@ async function importerSequence() {
     let plateau = Array.from({ length: lignes }, () => new Array(colonnes).fill(0));
     let joueur = ETAT.couleur_depart || 1;
     let nbCoups = 0;
+    let historique = [];
 
     for (const ch of coups) {
         const col = parseInt(ch) - 1;  // fichier = 1-indexé, plateau = 0-indexé
@@ -525,6 +528,7 @@ async function importerSequence() {
         for (let row = lignes - 1; row >= 0; row--) {
             if (plateau[row][col] === 0) {
                 plateau[row][col] = joueur;
+                historique.push([row, col, joueur]);
                 placed = true;
                 break;
             }
@@ -539,6 +543,7 @@ async function importerSequence() {
     ETAT.plateau = plateau;
     ETAT.joueur_courant = joueur;
     ETAT.resultat = null;
+    ETAT.historique = historique;
 
     afficherPlateauEditeur(ETAT.plateau);
 
