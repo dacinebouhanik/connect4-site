@@ -558,6 +558,9 @@ async function continuerPartie(mode) {
 
 async function situationEffacer() {
     ETAT.plateau = Array.from({ length: ETAT.lignes }, () => new Array(ETAT.colonnes).fill(0));
+    ETAT.resultat = null;
+    ETAT.mode = 3;
+
     afficherPlateauEditeur(ETAT.plateau);
 
     const info = document.getElementById("info");
