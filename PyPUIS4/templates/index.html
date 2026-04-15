@@ -115,6 +115,13 @@
             </div>
 
             <div class="ia-block">
+                <strong>📂 Importer une séquence</strong>
+                <small style="opacity:0.6;">Fichier .txt avec les coups (ex: 5544332)</small>
+                <input type="file" id="importFichier" accept=".txt" onchange="importerSequence()">
+                <div id="importInfo" style="font-size:12px; margin-top:4px; opacity:0.7;"></div>
+            </div>
+
+            <div class="ia-block">
                 <strong>Analyser la position</strong>
                 <label>Joueur qui joue</label>
                 <select id="joueurAnalyse">

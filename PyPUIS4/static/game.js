@@ -399,6 +399,80 @@ function appliquerDelaiIA() {
    MODE SITUATION
 ================================================ */
 
+/* ── Importer séquence depuis fichier .txt ── */
+async function importerSequence() {
+    const input = document.getElementById("importFichier");
+    const infoDiv = document.getElementById("importInfo");
+
+    if (!input.files || input.files.length === 0) return;
+
+    const fichier = input.files[0];
+    const texte = await fichier.text();
+
+    // Nettoyer : garder uniquement les chiffres
+    const coups = texte.trim().replace(/[^0-9]/g, "");
+
+    if (coups.length === 0) {
+        if (infoDiv) infoDiv.innerHTML = "❌ Fichier vide ou invalide";
+        return;
+    }
+
+    // Reconstruire le plateau coup par coup
+    const lignes = ETAT.lignes;
+    const colonnes = ETAT.colonnes;
+    let plateau = Array.from({ length: lignes }, () => new Array(colonnes).fill(0));
+    let joueur = ETAT.couleur_depart || 1;
+    let nbCoups = 0;
+
+    for (const ch of coups) {
+        const col = parseInt(ch) - 1;  // fichier = 1-indexé, plateau = 0-indexé
+        if (col < 0 || col >= colonnes) continue;
+
+        // Trouver la ligne libre (gravité)
+        let placed = false;
+        for (let row = lignes - 1; row >= 0; row--) {
+            if (plateau[row][col] === 0) {
+                plateau[row][col] = joueur;
+                placed = true;
+                break;
+            }
+        }
+
+        if (placed) {
+            nbCoups++;
+            joueur = joueur === 1 ? 2 : 1;
+        }
+    }
+
+    // Mettre à jour l'état
+    ETAT.plateau = plateau;
+    ETAT.joueur_courant = joueur;
+    ETAT.resultat = null;
+
+    // Afficher
+    afficherPlateauEditeur(ETAT.plateau);
+
+    // Mettre à jour le sélecteur "Joueur qui joue"
+    const joueurSelect = document.getElementById("joueurAnalyse");
+    if (joueurSelect) joueurSelect.value = String(joueur);
+
+    // Info
+    const nomJoueur = joueur === 1 ? "Rouge" : "Jaune";
+    const emoji = joueur === 1 ? "🔴" : "🟡";
+    if (infoDiv) {
+        infoDiv.innerHTML = `✅ ${nbCoups} coups chargés — ${emoji} ${nomJoueur} joue`;
+    }
+
+    const info = document.getElementById("info");
+    if (info) {
+        info.innerHTML = `📂 Séquence importée (${nbCoups} coups) — ${emoji} ${nomJoueur} joue`;
+        info.className = "info";
+    }
+
+    // Reset le champ fichier pour pouvoir réimporter
+    input.value = "";
+}
+
 async function situationPlacer(lig, col) {
     let couleur = ETAT.pion_editeur;
     if (ETAT.plateau[lig][col] === couleur) couleur = 0;
@@ -452,6 +526,100 @@ async function situationEffacer() {
     const zoneContainer = document.getElementById("zoneAnalyseResultat");
     if (zoneResultat) zoneResultat.innerHTML = "";
     if (zoneContainer) zoneContainer.style.display = "none";
+
+    // Reset le file input
+    const fi = document.getElementById("importFichier");
+    if (fi) fi.value = "";
+    const ii = document.getElementById("importInfo");
+    if (ii) ii.innerHTML = "";
+}
+
+/* ================================================
+   IMPORTER SÉQUENCE DEPUIS FICHIER TXT
+================================================ */
+
+function importerSequence() {
+    const input = document.getElementById("importFichier");
+    const infoDiv = document.getElementById("importInfo");
+    if (!input.files || !input.files[0]) return;
+
+    const fichier = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const contenu = e.target.result.trim();
+
+        // Extraire uniquement les chiffres
+        const sequence = contenu.replace(/[^0-9]/g, "");
+
+        if (sequence.length === 0) {
+            if (infoDiv) infoDiv.innerHTML = "❌ Fichier vide ou pas de chiffres";
+            return;
+        }
+
+        // Reconstituer le plateau depuis la séquence
+        const lignes = ETAT.lignes;
+        const colonnes = ETAT.colonnes;
+        let plateau = Array.from({ length: lignes }, () => new Array(colonnes).fill(0));
+        let joueur = ETAT.couleur_depart || 1;
+        let nbCoups = 0;
+        let erreur = false;
+
+        for (let i = 0; i < sequence.length; i++) {
+            const col = parseInt(sequence[i]) - 1;  // fichier = 1-indexé
+
+            if (col < 0 || col >= colonnes) {
+                if (infoDiv) infoDiv.innerHTML = `❌ Colonne invalide : ${sequence[i]}`;
+                erreur = true;
+                break;
+            }
+
+            // Trouver la ligne libre (gravité)
+            let placed = false;
+            for (let row = lignes - 1; row >= 0; row--) {
+                if (plateau[row][col] === 0) {
+                    plateau[row][col] = joueur;
+                    placed = true;
+                    break;
+                }
+            }
+
+            if (!placed) {
+                if (infoDiv) infoDiv.innerHTML = `❌ Colonne ${sequence[i]} pleine au coup ${i + 1}`;
+                erreur = true;
+                break;
+            }
+
+            joueur = joueur === 1 ? 2 : 1;
+            nbCoups++;
+        }
+
+        if (erreur) return;
+
+        // Appliquer au jeu
+        ETAT.plateau = plateau;
+        ETAT.joueur_courant = joueur;
+
+        afficherPlateauEditeur(ETAT.plateau);
+
+        const info = document.getElementById("info");
+        if (info) {
+            info.innerHTML = `📂 Séquence importée : ${nbCoups} coup(s) — ${fichier.name}`;
+            info.className = "info";
+        }
+
+        if (infoDiv) {
+            const emoji = joueur === 1 ? "🔴" : "🟡";
+            const nom = joueur === 1 ? "Rouge" : "Jaune";
+            infoDiv.innerHTML = `✅ ${nbCoups} coups chargés — c'est à ${emoji} ${nom} de jouer`;
+        }
+
+        // Mettre à jour le sélecteur "joueur qui joue"
+        const joueurSelect = document.getElementById("joueurAnalyse");
+        if (joueurSelect) joueurSelect.value = String(joueur);
+    };
+
+    reader.readAsText(fichier);
 }
 
 async function situationAnalyser() {
