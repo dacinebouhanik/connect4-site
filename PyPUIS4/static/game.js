@@ -31,6 +31,9 @@ const ETAT = {
 
     // Undo/Redo
     redo_pile:      [],
+
+    // IA vs IA : attendre le bouton Lancer
+    ia_lancee:      false,
 };
 
 // Seuil pour détecter victoire/défaite (doit matcher modele.py)
@@ -52,6 +55,7 @@ async function nouvellePartie() {
     stopperTimerIA();
     ETAT.en_train = false;
     ETAT.replay_actif = false;
+    ETAT.ia_lancee = false;
 
     const ctrl = document.getElementById("replayControls");
     if (ctrl) ctrl.remove();
@@ -156,10 +160,17 @@ function mettreAJourUI() {
         btnAnalyse.style.display = (!ETAT.resultat && ETAT.mode !== 3) ? "inline-block" : "none";
     }
 
-    // Timer IA vs IA
+    // Timer IA vs IA — seulement si lancée
+    const btnLancerIA = document.getElementById("btnLancerIA");
     if (ETAT.mode === 0 && !ETAT.resultat) {
-        demarrerTimerIA();
+        if (btnLancerIA) btnLancerIA.style.display = ETAT.ia_lancee ? "none" : "inline-block";
+        if (ETAT.ia_lancee) {
+            demarrerTimerIA();
+        } else {
+            stopperTimerIA();
+        }
     } else {
+        if (btnLancerIA) btnLancerIA.style.display = "none";
         stopperTimerIA();
         ETAT.en_train = false;
     }
@@ -397,8 +408,14 @@ async function changerMode() {
     stopperTimerIA();
     ETAT.en_train = false;
     ETAT.mode     = mode;
+    ETAT.ia_lancee = false;
     cacherConseil();
 
+    mettreAJourUI();
+}
+
+function lancerIAvIA() {
+    ETAT.ia_lancee = true;
     mettreAJourUI();
 }
 
