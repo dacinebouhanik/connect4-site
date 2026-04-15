@@ -270,36 +270,19 @@ async function jouerIA() {
     const ia_type   = joueur === 1 ? ETAT.ia_rouge : ETAT.ia_jaune;
     const profondeur = joueur === 1 ? ETAT.profondeur_rouge : ETAT.profondeur_jaune;
 
-    try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 25000);
+    const res  = await fetch("/api/ia_step", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ ...getEtatServeur(), ia_type, profondeur })
+    });
+    const data = await res.json();
 
-        const res  = await fetch("/api/ia_step", {
-            method:  "POST",
-            headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ ...getEtatServeur(), ia_type, profondeur }),
-            signal:  controller.signal
-        });
-        clearTimeout(timeout);
+    if (data.status === "fin" || data.status === "nul") return;
 
-        const data = await res.json();
-
-        if (data.status === "fin" || data.status === "nul") return;
-
-        ETAT.plateau        = data.plateau;
-        ETAT.joueur_courant = data.joueur_courant;
-        ETAT.historique     = data.historique;
-        ETAT.resultat       = data.resultat;
-    } catch (e) {
-        const info = document.getElementById("info");
-        if (info) {
-            info.innerHTML = "⚠️ L'IA a mis trop de temps. Réessayez avec une profondeur plus basse.";
-            info.className = "info";
-        }
-        ETAT.en_train = false;
-        activerPlateau();
-        return;
-    }
+    ETAT.plateau        = data.plateau;
+    ETAT.joueur_courant = data.joueur_courant;
+    ETAT.historique     = data.historique;
+    ETAT.resultat       = data.resultat;
 
     mettreAJourUI();
 }
