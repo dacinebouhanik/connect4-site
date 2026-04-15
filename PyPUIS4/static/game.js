@@ -385,10 +385,14 @@ async function changerDepart() {
     ETAT.couleur_depart = couleur;
     ETAT.joueur_humain = couleur;
 
-    // Ne relancer une nouvelle partie que si le plateau est vide
+    // Si plateau vide → nouvelle partie
     const estVide = ETAT.plateau.every(row => row.every(cell => cell === 0));
     if (estVide) {
         await nouvellePartie();
+    } else {
+        // Plateau chargé → changer le joueur courant
+        ETAT.joueur_courant = couleur;
+        mettreAJourUI();
     }
 }
 
